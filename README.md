@@ -1,8 +1,8 @@
 # judge-agent
 
-Paste text. Get a score. Know if a human wrote it.
+Agentic system to detect non-human created content.
 
-judge-agent detects whether content was written by a human or an AI. It returns a **humanness score (0–100)**, the top signals that drove the score, and a one-paragraph explanation. The score is a judgment call, not a probability — it makes a call and explains it.
+judge-agent analyzes content and returns a multi-dimensional judgment: **origin** (AI vs. human with confidence and signals), **virality score** (0–100 with drivers), **distribution analysis** (audience segments with platforms and predicted reactions), and a prose **explanation**. It makes a call and explains it.
 
 ---
 
@@ -14,6 +14,7 @@ judge-agent detects whether content was written by a human or an AI. It returns 
 - Python 3.11+
 - Node.js 18+
 - An Anthropic API key
+- ElevenLabs API key (only required for video mode): [console.elevenlabs.io](https://console.elevenlabs.io/)
 
 **The short version:**
 ```bash
@@ -33,9 +34,10 @@ cd frontend && npm install && npm run dev
 
 | Input | Output |
 |-------|--------|
-| Any text | Score 0–100 (0 = AI, 100 = human) |
-| | Top 1–5 signals that drove the score |
-| | One-paragraph explanation |
+| Any text (or video) | **Origin** — AI-generated or human-generated, with confidence and signals |
+| | **Virality** — score 0–100 with drivers |
+| | **Distribution** — 2–4 audience segments with platforms and predicted reactions |
+| | **Explanation** — prose analysis |
 
 The detection looks at structural patterns, vocabulary distribution, coherence, emotional register, and specificity of claims — signals that individually are weak but together are informative.
 
@@ -62,7 +64,10 @@ judge-agent/
 │       └── lib/              ← API client, types, constants
 ├── docs/
 │   ├── CHANGELOG.md          ← What changed in each release
-│   ├── v0.0.1-pre/           ← Current feature spec
+│   ├── v0.0.4-pre/ … v0.0.8-pre/  ← Upcoming feature specs
+│   ├── v0.0.3/               ← Released: user identity + run history
+│   ├── v0.0.2/               ← Released: full judge schema + DBOS
+│   ├── v0.0.1/               ← Released: AI detection end-to-end
 │   └── v0.0.0/               ← Released: project scaffolding
 ├── GETTING_STARTED.md        ← How to run it (start here)
 ├── ARCHITECTURE.md           ← Design decisions and trade-offs
@@ -73,23 +78,42 @@ judge-agent/
 
 ## API
 
-One endpoint:
+### Analyze text
 
 ```
 POST /judge
 Content-Type: application/json
 
-{ "content": "text to evaluate" }
+{ "content": "text to evaluate", "user_uuid": "optional-user-uuid" }
 ```
 
 Response:
 ```json
 {
-  "score": 12,
-  "signals": ["uniform paragraph length", "'leverage' and 'nuanced' vocabulary cluster"],
-  "explanation": "The text displays..."
+  "origin": {
+    "prediction": "AI-generated",
+    "confidence": 0.92,
+    "signals": ["uniform paragraph length", "'leverage' and 'nuanced' vocabulary cluster"]
+  },
+  "virality": {
+    "score": 25,
+    "drivers": ["no emotional hook", "generic framing"]
+  },
+  "distribution": [
+    {
+      "segment": "Tech Twitter",
+      "platforms": ["twitter", "linkedin"],
+      "reaction": "ignore"
+    }
+  ],
+  "explanation": "The text displays classic AI-generated patterns..."
 }
 ```
+
+### Other endpoints
+
+- `POST /auth/signup` — create or retrieve user by username
+- `GET /judge/history?user_uuid=...` — past runs for a user
 
 Interactive docs at [http://localhost:8000/docs](http://localhost:8000/docs) once the backend is running.
 
@@ -99,8 +123,8 @@ Interactive docs at [http://localhost:8000/docs](http://localhost:8000/docs) onc
 
 This project follows **BARDD** — specs are written before code. Every feature starts as a doc in `docs/v0.x.y-pre/README.md`, gets implemented against its acceptance criteria, then the `-pre` suffix is dropped on merge.
 
-Current release: **v0.0.1** — AI detection end-to-end
-Next: **v0.0.2-pre** — spec TBD
+Current release: **v0.0.3** — User identity + run history
+Next: **v0.0.4-pre** — Fix docs + ElevenLabs wiring
 History: [docs/CHANGELOG.md](docs/CHANGELOG.md)
 
 ---

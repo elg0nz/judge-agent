@@ -44,8 +44,8 @@ def create_app() -> FastAPI:
     """
     app = FastAPI(
         title="Judge Agent API",
-        description="Judicial reasoning agent powered by DBOS and Agno",
-        version="0.0.1",
+        description="Agentic system to detect non-human created content",
+        version="0.0.4",
         docs_url="/docs",
         openapi_url="/openapi.json",
         lifespan=lifespan,
@@ -74,7 +74,7 @@ def create_app() -> FastAPI:
         """
         return {
             "name": "Judge Agent API",
-            "version": "0.0.1",
+            "version": "0.0.4",
             "environment": settings.ENVIRONMENT,
             "docs_url": "/docs",
             "openapi_url": "/openapi.json",

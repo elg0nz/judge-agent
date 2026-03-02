@@ -11,6 +11,7 @@ This guide gets you from a fresh clone to a running system in under 10 minutes.
 | Python 3.11+ | Runs the backend API | [python.org/downloads](https://www.python.org/downloads/) |
 | Node.js 18+ | Runs the frontend | [nodejs.org](https://nodejs.org/) |
 | Anthropic API key | Powers the AI detection | [console.anthropic.com](https://console.anthropic.com/) |
+| ElevenLabs API key | Video mode transcription (optional) | [console.elevenlabs.io](https://console.elevenlabs.io/) |
 
 Check your versions:
 ```bash
@@ -106,10 +107,11 @@ Open **[http://localhost:3000](http://localhost:3000)** in your browser. You'll 
 
 ## Step 6 — Test the end-to-end flow
 
-Paste any text into the judge UI and click **Judge**. You'll get:
-- A **score** (0–100): 0 = definitely AI, 100 = definitely human
-- **Signals** — the top reasons for the score
-- An **explanation** paragraph
+Enter a username (first time only), paste any text into the judge UI and click **Analyze**. You'll get:
+- **Origin** — AI-generated or human-generated, with confidence score and signals
+- **Virality** — score 0–100 with drivers
+- **Distribution** — audience segments with platforms and predicted reactions
+- **Explanation** — prose analysis
 
 Or test directly from the terminal:
 ```bash
@@ -121,16 +123,30 @@ curl -X POST http://localhost:8000/judge \
 Expected response:
 ```json
 {
-  "score": 8,
-  "signals": ["'landscape', 'leverage', 'nuanced' — classic AI vocabulary cluster", "..."],
-  "explanation": "..."
+  "origin": {
+    "prediction": "AI-generated",
+    "confidence": 0.92,
+    "signals": ["'landscape', 'leverage', 'nuanced' — classic AI vocabulary cluster"]
+  },
+  "virality": {
+    "score": 15,
+    "drivers": ["no emotional hook", "generic corporate framing"]
+  },
+  "distribution": [
+    {
+      "segment": "LinkedIn professionals",
+      "platforms": ["linkedin"],
+      "reaction": "ignore"
+    },
+    {
+      "segment": "AI skeptics",
+      "platforms": ["twitter", "reddit"],
+      "reaction": "comment"
+    }
+  ],
+  "explanation": "The text displays classic AI-generated patterns..."
 }
 ```
-
-Score guide:
-- **0–29** (red) — Likely AI-generated
-- **30–69** (yellow) — Ambiguous
-- **70–100** (green) — Likely human-written
 
 ---
 

@@ -1,10 +1,10 @@
 # Judge Agent Backend
 
-Judicial reasoning agent backend built with FastAPI, DBOS, and Agno.
+Agentic system to detect non-human created content. Built with FastAPI, DBOS, and Agno.
 
 ## Overview
 
-The backend provides REST API endpoints for legal case analysis powered by the Judge Agent, an intelligent judicial reasoning system. It integrates DBOS for efficient database workflows and Agno for AI-driven legal reasoning.
+The backend provides REST API endpoints for content analysis powered by the Judge Agent — an AI detection system that evaluates whether content was written by a human or AI, scores its virality potential, and predicts audience distribution.
 
 ## Prerequisites
 
@@ -24,11 +24,11 @@ cp .env.example .env
 ```
 
 Edit `.env` to configure:
-- Database connection URL
-- Server host and port
-- CORS origins
-- Logging level
-- API keys and secrets
+- `ANTHROPIC_API_KEY` — Required. Powers the AI judge agent.
+- `ELEVENLABS_API_KEY` — Required for video mode (speech-to-text transcription via ElevenLabs Scribe). Leave blank if only using text mode.
+- `DATABASE_URL` — SQLite by default, PostgreSQL optional
+- `CORS_ORIGINS` — Frontend URL(s)
+- `LOG_LEVEL` — Logging verbosity
 
 ### 2. Install Dependencies
 
