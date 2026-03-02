@@ -63,14 +63,32 @@ export class ApiError extends Error {
 }
 
 /**
- * Judge API types
+ * Judge API types — v0.0.2 full schema
  */
 export interface JudgeRequest {
   content: string;
 }
 
-export interface JudgeResponse {
-  score: number;
+export interface OriginOutput {
+  prediction: 'AI-generated' | 'human-generated';
+  confidence: number;
   signals: string[];
+}
+
+export interface ViralityOutput {
+  score: number;
+  drivers: string[];
+}
+
+export interface DistributionSegment {
+  segment: string;
+  platforms: string[];
+  reaction: 'share' | 'save' | 'comment' | 'ignore';
+}
+
+export interface JudgeResponse {
+  origin: OriginOutput;
+  virality: ViralityOutput;
+  distribution: DistributionSegment[];
   explanation: string;
 }

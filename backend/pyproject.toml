@@ -21,6 +21,7 @@ dependencies = [
     # psycopg2-binary is only required when DATABASE_URL targets PostgreSQL.
     "agno>=1.0.0",
     "anthropic>=0.40.0",
+    "dbos>=2.0.0",
 ]
 
 [project.optional-dependencies]

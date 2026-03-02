@@ -30,6 +30,9 @@ class Settings(BaseSettings):
     DATABASE_POOL_RECYCLE: int = 3600
     DATABASE_ECHO: bool = False
 
+    # DBOS durable execution system database (separate from app DB)
+    DBOS_SYSTEM_DATABASE_URL: str = "sqlite:///dbos_system.db"
+
     @property
     def is_sqlite(self) -> bool:
         """True when DATABASE_URL targets SQLite."""

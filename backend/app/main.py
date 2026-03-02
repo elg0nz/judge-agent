@@ -17,9 +17,16 @@ async def lifespan(app: FastAPI):  # type: ignore[type-arg]
     """
     Application lifespan handler.
 
-    In development with SQLite, auto-creates all tables so the server
-    works out of the box without running migrations.
+    Initializes DBOS for durable execution, then auto-creates all SQLite
+    tables in development so the server works out of the box.
     """
+    from dbos import DBOS, DBOSConfig
+    config: DBOSConfig = {
+        "name": "judge-agent",
+        "system_database_url": settings.DBOS_SYSTEM_DATABASE_URL,
+    }
+    DBOS(config=config)
+    DBOS.launch()
     if settings.ENVIRONMENT == "development" and settings.is_sqlite:
         get_db_manager().create_all_tables()
     yield
