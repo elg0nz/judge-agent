@@ -3,8 +3,37 @@
 import json
 from typing import Any, Literal
 
-from pydantic import field_validator
-from pydantic_settings import BaseSettings
+from pydantic.fields import FieldInfo
+from pydantic_settings import BaseSettings, EnvSettingsSource
+
+
+class _TolerantEnvSource(EnvSettingsSource):
+    """EnvSettingsSource that handles dotenv-mangled JSON arrays.
+
+    uv (and some other dotenv parsers) strip inner double-quotes from JSON
+    arrays, turning '["a","b"]' into '[a,b]'. The default source calls
+    json.loads() and crashes before any field_validator runs.
+
+    This override falls back to bracket-stripping + comma-split for list
+    fields when json.loads fails.
+    """
+
+    def decode_complex_value(
+        self, field_name: str, field_info: FieldInfo, value: Any
+    ) -> Any:
+        if not isinstance(value, str):
+            return super().decode_complex_value(field_name, field_info, value)
+        v = value.strip()
+        try:
+            return json.loads(v)
+        except (json.JSONDecodeError, ValueError):
+            pass
+        # Strip bare array brackets: [a,b] → a,b
+        if v.startswith("[") and v.endswith("]"):
+            v = v[1:-1]
+        # Comma-separated fallback; strip stray quotes from each item
+        items = [item.strip().strip('"').strip("'") for item in v.split(",")]
+        return [item for item in items if item]
 
 
 class Settings(BaseSettings):
@@ -43,31 +72,6 @@ class Settings(BaseSettings):
     # CORS
     CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:8000"]
 
-    @field_validator("CORS_ORIGINS", mode="before")
-    @classmethod
-    def parse_cors_origins(cls, v: Any) -> list[str]:
-        """Accept JSON arrays, bare brackets, or comma-separated strings.
-
-        Dotenv parsers (including uv --env-file) sometimes strip inner quotes
-        from JSON arrays, producing e.g. [http://localhost:3000,...] instead of
-        ["http://localhost:3000",...]. This validator handles all variants.
-        """
-        if isinstance(v, list):
-            return v
-        if not isinstance(v, str):
-            return v
-        v = v.strip()
-        try:
-            parsed = json.loads(v)
-            if isinstance(parsed, list):
-                return [str(item) for item in parsed]
-        except (json.JSONDecodeError, ValueError):
-            pass
-        # Strip bare brackets (e.g. [http://a,http://b] → http://a,http://b)
-        if v.startswith("[") and v.endswith("]"):
-            v = v[1:-1]
-        return [origin.strip() for origin in v.split(",") if origin.strip()]
-
     # API Keys and Secrets
     SECRET_KEY: str = "dev-secret-key-change-in-production"
     API_KEY_HEADER: str = "X-API-Key"
@@ -82,6 +86,30 @@ class Settings(BaseSettings):
         env_file = ".env"
         env_file_encoding = "utf-8"
         case_sensitive = True
+
+    @classmethod
+    def settings_customise_sources(
+        cls,
+        settings_cls: type[BaseSettings],
+        init_settings: Any,
+        env_settings: Any,
+        dotenv_settings: Any,
+        file_secret_settings: Any | None = None,
+        secrets_settings: Any | None = None,
+        **_: Any,
+    ) -> tuple[Any, ...]:
+        """Replace the default EnvSettingsSource with our tolerant variant."""
+        secret_source = (
+            file_secret_settings
+            if file_secret_settings is not None
+            else secrets_settings
+        )
+        return (
+            init_settings,
+            _TolerantEnvSource(settings_cls),
+            dotenv_settings,
+            secret_source,
+        )
 
     def model_post_init(self, __context: object) -> None:
         """Validate environment after model initialization."""
