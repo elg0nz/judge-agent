@@ -9,8 +9,9 @@ The backend provides REST API endpoints for legal case analysis powered by the J
 ## Prerequisites
 
 - Python 3.11+
-- PostgreSQL 14+
 - pip or uv for package management
+
+> **Database:** SQLite is the default for local development — no database setup required. For PostgreSQL, see [Database Setup](#3-database-setup) below.
 
 ## Setup
 
@@ -41,23 +42,22 @@ pip install -e ".[dev]"
 
 ### 3. Database Setup
 
-Set up your PostgreSQL database and update the `DATABASE_URL` in `.env`.
+**Local dev (SQLite — default):** No setup needed. Tables are auto-created on first startup when `ENVIRONMENT=development`.
 
-Create database tables (development only):
+**PostgreSQL (production):**
 
-```bash
-python -c "from app.db.dbos import db_manager; db_manager.create_all_tables()"
-```
-
-For production, use Alembic migrations:
-
-```bash
-# Create initial migration
-alembic revision --autogenerate -m "Initial schema"
-
-# Run migrations
-alembic upgrade head
-```
+1. Install the PostgreSQL driver:
+   ```bash
+   pip install -e ".[postgres]"
+   ```
+2. Set `DATABASE_URL` in `.env`:
+   ```
+   DATABASE_URL=postgresql://user:password@localhost:5432/judge_agent
+   ```
+3. Run migrations:
+   ```bash
+   alembic upgrade head
+   ```
 
 ## Running the Server
 
@@ -307,10 +307,13 @@ Agno agents for AI-driven reasoning will be integrated in future releases. The a
 
 ### Database Connection Errors
 
+**SQLite (default):** The file `judge_agent.db` is created automatically in the `backend/` directory. No action needed.
+
+**PostgreSQL:**
 1. Verify PostgreSQL is running
 2. Check `DATABASE_URL` in `.env`
 3. Ensure database exists: `createdb judge_agent`
-4. Test connection: `psql $DATABASE_URL`
+4. Ensure driver is installed: `pip install -e ".[postgres]"`
 
 ### Import Errors
 

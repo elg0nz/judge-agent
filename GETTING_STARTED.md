@@ -10,6 +10,8 @@ This guide covers how to run the judge-agent system locally and how to execute t
 - Node.js 18+
 - An [Anthropic API key](https://console.anthropic.com/)
 
+> **Database:** SQLite is the default — no database setup required for local dev. To use PostgreSQL instead, set `DATABASE_URL=postgresql://...` in `backend/.env` and run `pip install -e ".[postgres]"`.
+
 ---
 
 ## 1. Configure environment
