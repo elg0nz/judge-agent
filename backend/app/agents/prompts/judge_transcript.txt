@@ -1,0 +1,7 @@
+## Additional Transcript Signals
+
+In addition to the text signals, evaluate:
+- **Disfluency markers**: Presence/absence of "um", "uh", false starts, self-corrections
+- **Pacing patterns**: Consistent cadence suggests AI voiceover; natural speech varies
+- **Topic tangents**: Human speakers digress and recover; AI stays relentlessly on-topic
+- **Filler words and timing gaps** (from SRT/VTT timing data if available)

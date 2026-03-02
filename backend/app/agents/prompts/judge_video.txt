@@ -1,0 +1,8 @@
+## Additional Visual Signals
+
+In addition to text and transcript signals, evaluate the provided keyframes for:
+- **Lighting uniformity**: AI-generated scenes tend toward uniform lighting
+- **Background complexity**: Real environments have clutter; AI backgrounds are clean
+- **Text overlays**: Style, placement, and font choices
+- **Facial presence**: Real faces vs. AI-generated faces (uncanny valley markers)
+- **Camera motion patterns**: Handheld vs. synthetic smooth motion
