@@ -2,7 +2,7 @@
  * API client with fetch wrapper and error handling
  */
 
-import { ApiError, ApiResponse, ApiClientConfig, JudgeRequest, JudgeResponse } from './types';
+import { ApiError, ApiResponse, ApiClientConfig, JudgeRequest, JudgeResponse, UserProfile, RunSummary } from './types';
 import { API_BASE_URL, API_TIMEOUT_MS, API_RETRY_COUNT, API_ENDPOINTS } from './constants';
 
 /**
@@ -135,6 +135,16 @@ export async function checkHealth(): Promise<boolean> {
   }
 }
 
-export async function judgeContent(content: string): Promise<JudgeResponse> {
-  return apiClient.post<JudgeResponse>(API_ENDPOINTS.judge, { content } satisfies JudgeRequest);
+export async function judgeContent(content: string, userUuid?: string): Promise<JudgeResponse> {
+  const body: JudgeRequest & { user_uuid?: string } = { content };
+  if (userUuid) body.user_uuid = userUuid;
+  return apiClient.post<JudgeResponse>(API_ENDPOINTS.judge, body);
+}
+
+export async function signup(username: string): Promise<UserProfile> {
+  return apiClient.post<UserProfile>('/auth/signup', { username });
+}
+
+export async function getHistory(userUuid: string): Promise<RunSummary[]> {
+  return apiClient.get<RunSummary[]>(`/judge/history?user_uuid=${encodeURIComponent(userUuid)}`);
 }

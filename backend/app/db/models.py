@@ -1,8 +1,10 @@
 """SQLAlchemy ORM models for the application."""
 
+import uuid as uuid_module
 from datetime import UTC, datetime
+from typing import Any
 
-from sqlalchemy import DateTime, func
+from sqlalchemy import JSON, DateTime, ForeignKey, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -55,4 +57,43 @@ class Case(Base, TimestampedMixin):
         return f"<Case(id={self.id}, title={self.title!r})>"
 
 
-__all__ = ["Base", "TimestampedMixin", "Case"]
+class User(Base, TimestampedMixin):
+    """User identity — username + auto-assigned UUID. No passwords."""
+
+    __tablename__ = "users"
+
+    uuid: Mapped[str] = mapped_column(
+        primary_key=True,
+        default=lambda: str(uuid_module.uuid4()),
+    )
+    username: Mapped[str] = mapped_column(nullable=False, unique=True, index=True)
+
+    def __repr__(self) -> str:
+        return f"<User(username={self.username!r}, uuid={self.uuid!r})>"
+
+
+class JudgeRun(Base):
+    """Stored result of a judge invocation, keyed by md5(input_text + user_uuid)."""
+
+    __tablename__ = "judge_runs"
+
+    id: Mapped[str] = mapped_column(primary_key=True)  # md5 hex
+    user_uuid: Mapped[str] = mapped_column(
+        ForeignKey("users.uuid", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    input_text: Mapped[str] = mapped_column(nullable=False)
+    output: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        default=lambda: datetime.now(UTC),
+        nullable=False,
+    )
+
+    def __repr__(self) -> str:
+        return f"<JudgeRun(id={self.id!r}, user_uuid={self.user_uuid!r})>"
+
+
+__all__ = ["Base", "TimestampedMixin", "Case", "User", "JudgeRun"]

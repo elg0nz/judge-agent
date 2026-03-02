@@ -92,3 +92,15 @@ export interface JudgeResponse {
   distribution: DistributionSegment[];
   explanation: string;
 }
+
+export interface UserProfile {
+  username: string;
+  uuid: string;
+}
+
+export interface RunSummary {
+  id: string;
+  input_preview: string;
+  output: JudgeResponse;
+  created_at: string;
+}

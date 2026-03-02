@@ -1,29 +1,86 @@
-"""Judge API endpoint — POST /judge."""
+"""Judge API — POST /judge and GET /judge/history."""
 
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException
+import hashlib
+
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
 
 from app.agents.judge_agent import run_judge
 from app.agents.output import JudgeOutput
+from app.db.dbos import get_db
+from app.db.models import JudgeRun
 
 router = APIRouter(prefix="/judge", tags=["judge"])
 
 
 class JudgeRequest(BaseModel):
-    """Request body for POST /judge."""
-
     content: str
+    user_uuid: str | None = None
+
+
+class RunSummary(BaseModel):
+    id: str
+    input_preview: str
+    output: JudgeOutput
+    created_at: str
+
+
+def _run_id(content: str, user_uuid: str) -> str:
+    return hashlib.md5((content + user_uuid).encode()).hexdigest()
 
 
 @router.post("", response_model=JudgeOutput)
-async def judge_text(request: JudgeRequest) -> JudgeOutput:
-    """Judge text content across origin, virality, distribution, and explanation."""
+async def judge_text(
+    request: JudgeRequest,
+    db: Session = Depends(get_db),
+) -> JudgeOutput:
+    """Judge text content. If user_uuid provided, caches by md5(content+user_uuid)."""
+    if request.user_uuid:
+        run_id = _run_id(request.content, request.user_uuid)
+        existing = db.query(JudgeRun).filter_by(id=run_id).first()
+        if existing:
+            return JudgeOutput.model_validate(existing.output)
+
     try:
-        return await run_judge(content=request.content)
+        result = await run_judge(content=request.content)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+    if request.user_uuid:
+        run = JudgeRun(
+            id=run_id,
+            user_uuid=request.user_uuid,
+            input_text=request.content,
+            output=result.model_dump(),
+        )
+        db.add(run)
+        db.commit()
+
+    return result
+
+
+@router.get("/history", response_model=list[RunSummary])
+def get_history(user_uuid: str, db: Session = Depends(get_db)) -> list[RunSummary]:
+    """Return judge runs for a user, newest first."""
+    runs = (
+        db.query(JudgeRun)
+        .filter_by(user_uuid=user_uuid)
+        .order_by(JudgeRun.created_at.desc())
+        .limit(50)
+        .all()
+    )
+    return [
+        RunSummary(
+            id=r.id,
+            input_preview=r.input_text[:120],
+            output=JudgeOutput.model_validate(r.output),
+            created_at=r.created_at.isoformat(),
+        )
+        for r in runs
+    ]
 
 
 __all__ = ["router"]

@@ -1,7 +1,9 @@
 """Application configuration using Pydantic Settings."""
 
-from typing import Literal
+import json
+from typing import Any, Literal
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings
 
 
@@ -40,6 +42,31 @@ class Settings(BaseSettings):
 
     # CORS
     CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:8000"]
+
+    @field_validator("CORS_ORIGINS", mode="before")
+    @classmethod
+    def parse_cors_origins(cls, v: Any) -> list[str]:
+        """Accept JSON arrays, bare brackets, or comma-separated strings.
+
+        Dotenv parsers (including uv --env-file) sometimes strip inner quotes
+        from JSON arrays, producing e.g. [http://localhost:3000,...] instead of
+        ["http://localhost:3000",...]. This validator handles all variants.
+        """
+        if isinstance(v, list):
+            return v
+        if not isinstance(v, str):
+            return v
+        v = v.strip()
+        try:
+            parsed = json.loads(v)
+            if isinstance(parsed, list):
+                return [str(item) for item in parsed]
+        except (json.JSONDecodeError, ValueError):
+            pass
+        # Strip bare brackets (e.g. [http://a,http://b] → http://a,http://b)
+        if v.startswith("[") and v.endswith("]"):
+            v = v[1:-1]
+        return [origin.strip() for origin in v.split(",") if origin.strip()]
 
     # API Keys and Secrets
     SECRET_KEY: str = "dev-secret-key-change-in-production"
