@@ -1,61 +1,117 @@
 # Getting Started
 
-This guide covers how to run the judge-agent system locally and how to execute the AI detection evals.
+This guide gets you from a fresh clone to a running system in under 10 minutes.
 
 ---
 
-## Prerequisites
+## What you'll need
 
-- Python 3.11+
-- Node.js 18+
-- An [Anthropic API key](https://console.anthropic.com/)
+| Tool | Why | Install |
+|------|-----|---------|
+| Python 3.11+ | Runs the backend API | [python.org/downloads](https://www.python.org/downloads/) |
+| Node.js 18+ | Runs the frontend | [nodejs.org](https://nodejs.org/) |
+| Anthropic API key | Powers the AI detection | [console.anthropic.com](https://console.anthropic.com/) |
 
-> **Database:** SQLite is the default — no database setup required for local dev. To use PostgreSQL instead, set `DATABASE_URL=postgresql://...` in `backend/.env` and run `pip install -e ".[postgres]"`.
+Check your versions:
+```bash
+python --version   # must be 3.11 or higher
+node --version     # must be 18 or higher
+```
 
 ---
 
-## 1. Configure environment
+## Step 1 — Configure the backend
 
-### Backend
+The backend reads its settings from a file called `.env`. One is already set up for you — the only thing you need to add is your API key.
+
+Open `backend/.env` and find this line:
+```
+ANTHROPIC_API_KEY=your-anthropic-api-key-here
+```
+
+Replace `your-anthropic-api-key-here` with your actual key (starts with `sk-ant-`).
+
+That's it. The database is SQLite — a single file that gets created automatically when you start the server. No database setup required.
+
+---
+
+## Step 2 — Install backend dependencies
 
 ```bash
 cd backend
-# .env already exists — just fill in your API key:
-```
-
-Open `backend/.env` and set:
-```
-ANTHROPIC_API_KEY=sk-ant-...
-```
-
-### Frontend
-
-The frontend is pre-configured. `frontend/.env.local` already points to `http://localhost:8000`. No changes needed for local dev.
-
----
-
-## 2. Start the backend
-
-```bash
-cd backend
-
-# First time: install dependencies
 pip install -e ".[dev]"
+```
 
-# Start the server (auto-reloads on file changes)
-bash scripts/dev.sh
-# or directly:
+This installs the backend and all its development tools. `.[dev]` means "this package, plus the dev extras." The `-e` flag means edits to source files take effect immediately without reinstalling.
+
+Expected output: lots of lines, ending with `Successfully installed ...`
+
+---
+
+## Step 3 — Start the backend
+
+```bash
 python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-The API will be available at:
-- `http://localhost:8000` — root
-- `http://localhost:8000/health` — health check
-- `http://localhost:8000/docs` — interactive Swagger UI
-- `http://localhost:8000/judge` — AI detection endpoint (POST)
+`uvicorn` is the server that runs the FastAPI app. `--reload` means it automatically restarts when you edit files.
 
-### Quick API test
+**You should see:**
+```
+INFO:     Uvicorn running on http://0.0.0.0:8000
+INFO:     Application startup complete.
+```
 
+Verify it's working:
+```bash
+curl http://localhost:8000/health
+# {"status":"healthy","environment":"development"}
+```
+
+The interactive API docs are at **[http://localhost:8000/docs](http://localhost:8000/docs)** — you can call every endpoint from the browser there.
+
+> **Shortcut:** `bash scripts/dev.sh` does the same thing as the uvicorn command above.
+
+---
+
+## Step 4 — Install frontend dependencies
+
+Open a **new terminal tab** (keep the backend running).
+
+```bash
+cd frontend
+npm install
+```
+
+Expected output: lots of lines, ending with `added N packages`.
+
+---
+
+## Step 5 — Start the frontend
+
+```bash
+npm run dev
+```
+
+**You should see:**
+```
+▲ Next.js 15.x.x
+- Local: http://localhost:3000
+✓ Ready in 2.8s
+```
+
+Open **[http://localhost:3000](http://localhost:3000)** in your browser. You'll see the judge interface.
+
+---
+
+## Step 6 — Test the end-to-end flow
+
+Paste any text into the judge UI and click **Judge**. You'll get:
+- A **score** (0–100): 0 = definitely AI, 100 = definitely human
+- **Signals** — the top reasons for the score
+- An **explanation** paragraph
+
+Or test directly from the terminal:
 ```bash
 curl -X POST http://localhost:8000/judge \
   -H "Content-Type: application/json" \
@@ -65,82 +121,71 @@ curl -X POST http://localhost:8000/judge \
 Expected response:
 ```json
 {
-  "score": 12,
-  "signals": ["'landscape', 'crucial', 'leverage', 'nuanced' — classic AI vocabulary cluster", "..."],
+  "score": 8,
+  "signals": ["'landscape', 'leverage', 'nuanced' — classic AI vocabulary cluster", "..."],
   "explanation": "..."
 }
 ```
 
----
-
-## 3. Start the frontend
-
-```bash
-cd frontend
-
-# First time: install dependencies
-npm install
-
-# Start the dev server
-npm run dev
-```
-
-Open `http://localhost:3000`. You'll see the judge interface — paste any text and click **Judge**.
-
-Score interpretation:
+Score guide:
 - **0–29** (red) — Likely AI-generated
 - **30–69** (yellow) — Ambiguous
 - **70–100** (green) — Likely human-written
 
 ---
 
-## 4. Run the evals
+## Step 7 — Run the evals (optional)
 
-The eval script tests the judge agent against 10 labeled samples (5 AI, 5 human) and checks that:
-- AI samples score **< 30**
-- Human samples score **> 70**
+The eval script tests the judge against 10 labeled samples (5 AI-written, 5 human-written) and verifies accuracy thresholds:
 
 ```bash
 cd backend
-
-# Requires ANTHROPIC_API_KEY to be set in .env or your environment
 python tests/eval_detection.py
 ```
 
-Example output:
-```
-=== AI Detection Eval ===
-
-AI samples (expect score < 30):
-  [PASS] ai #1 (synthetic): score=8 — In today's rapidly evolving landscape, it's im...
-  [PASS] ai #2 (synthetic): score=12 — Artificial intelligence has become an integral...
-  ...
-
-Human samples (expect score > 70):
-  [PASS] human #1 (synthetic): score=82 — I've been thinking about this for weeks and...
-  [PASS] human #2 (synthetic): score=91 — hot take: the obsession with 'clean code' h...
-  ...
-
-=== Summary ===
-AI samples:    5/5 passed
-Human samples: 5/5 passed
-Overall:       10/10 passed (100%)
-```
+All 10 should pass. If they don't, check your API key.
 
 ---
 
 ## Troubleshooting
 
-**`ImportError: No module named 'agno'`**
+**`ModuleNotFoundError: No module named 'agno'` or similar**
+You skipped or the install failed. Run it again:
 ```bash
 cd backend && pip install -e ".[dev]"
 ```
 
-**`AuthenticationError: Invalid API key`**
-Check that `ANTHROPIC_API_KEY` is set correctly in `backend/.env`.
+**`AuthenticationError` or `Invalid API key`**
+Your `ANTHROPIC_API_KEY` in `backend/.env` is wrong or missing. Double-check it starts with `sk-ant-`.
 
-**Frontend can't reach backend**
-Make sure the backend is running on port 8000 and `NEXT_PUBLIC_API_URL` in `frontend/.env.local` matches.
+**`Address already in use` on port 8000**
+Something else is using that port. Find and stop it:
+```bash
+lsof -ti:8000 | xargs kill
+```
 
-**CORS error in browser**
-The backend allows `http://localhost:3000` by default. If you're running the frontend on a different port, update `CORS_ORIGINS` in `backend/.env`.
+**Frontend shows "Failed to fetch" or network error**
+The backend isn't running. Start it first (Step 3), then reload the frontend.
+
+**Frontend is on a different port than 3000**
+Update `CORS_ORIGINS` in `backend/.env` to match, then restart the backend.
+
+---
+
+## Using PostgreSQL instead of SQLite
+
+SQLite is fine for local development. If you need PostgreSQL:
+
+1. Install the driver:
+   ```bash
+   pip install -e ".[postgres]"
+   ```
+2. Update `backend/.env`:
+   ```
+   DATABASE_URL=postgresql://user:password@localhost:5432/judge_agent
+   ```
+3. Create the database and run migrations:
+   ```bash
+   createdb judge_agent
+   alembic upgrade head
+   ```
