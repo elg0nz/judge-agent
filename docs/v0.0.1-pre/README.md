@@ -47,6 +47,14 @@ Deliver a working end-to-end AI detection feature: paste text, get a humanness s
 
 5. **Dependencies** (`backend/pyproject.toml`):
    - Add `agno` and `anthropic` to dependencies
+   - Move `psycopg2-binary` to optional `postgres` extra (not required for local dev)
+
+6. **SQLite local dev support**:
+   - `config.py`: Default `DATABASE_URL` to `sqlite:///./judge_agent.db`; add `is_sqlite` property
+   - `db/dbos.py`: Detect SQLite and skip unsupported pool params (`pool_size`, `max_overflow`, `pool_timeout`, `pool_recycle`); pass `check_same_thread=False` connect arg
+   - `main.py`: Auto-create tables on startup when `ENVIRONMENT=development` and using SQLite
+   - `alembic/env.py`: Add `render_as_batch=True` for SQLite ALTER TABLE compatibility
+   - `.env.example`: Default to SQLite with PostgreSQL alternative documented
 
 ### Frontend
 
@@ -89,6 +97,8 @@ Deliver a working end-to-end AI detection feature: paste text, get a humanness s
 - [ ] Frontend: paste text → click Judge → see score + signals + explanation
 - [ ] Score display is color-coded: red (< 30), yellow (30–70), green (> 70)
 - [ ] Backend starts without import errors (`agno` and `anthropic` in deps)
+- [ ] Backend starts without a PostgreSQL instance running (SQLite default)
+- [ ] SQLite tables auto-created on startup in `development` environment
 - [ ] Eval script runs against fixtures; AI samples < 30, human samples > 70
 - [ ] `mypy --strict` and `ruff` pass on backend
 - [ ] `tsc --strict` and `eslint` pass on frontend

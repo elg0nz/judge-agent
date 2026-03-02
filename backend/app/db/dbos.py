@@ -25,15 +25,25 @@ class DatabaseManager:
             database_url: Database connection string. Defaults to settings.DATABASE_URL.
         """
         url = database_url or settings.DATABASE_URL
+        is_sqlite = url.startswith("sqlite")
 
-        self.engine: Engine = create_engine(
-            url,
-            pool_size=settings.DATABASE_POOL_SIZE,
-            max_overflow=settings.DATABASE_MAX_OVERFLOW,
-            pool_timeout=settings.DATABASE_POOL_TIMEOUT,
-            pool_recycle=settings.DATABASE_POOL_RECYCLE,
-            echo=settings.DATABASE_ECHO,
-        )
+        if is_sqlite:
+            # SQLite does not support connection pool parameters.
+            # check_same_thread=False is required for FastAPI's threaded request handling.
+            self.engine: Engine = create_engine(
+                url,
+                connect_args={"check_same_thread": False},
+                echo=settings.DATABASE_ECHO,
+            )
+        else:
+            self.engine = create_engine(
+                url,
+                pool_size=settings.DATABASE_POOL_SIZE,
+                max_overflow=settings.DATABASE_MAX_OVERFLOW,
+                pool_timeout=settings.DATABASE_POOL_TIMEOUT,
+                pool_recycle=settings.DATABASE_POOL_RECYCLE,
+                echo=settings.DATABASE_ECHO,
+            )
 
         self.SessionLocal = sessionmaker(
             bind=self.engine,

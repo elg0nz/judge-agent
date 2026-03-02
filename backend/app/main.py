@@ -1,5 +1,6 @@
 """Main FastAPI application entry point with health check and root endpoints."""
 
+from contextlib import asynccontextmanager
 from typing import Any
 
 from fastapi import FastAPI
@@ -8,6 +9,20 @@ from fastapi.responses import JSONResponse
 
 from app.api.judge import router as judge_router
 from app.core.config import settings
+from app.db.dbos import get_db_manager
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):  # type: ignore[type-arg]
+    """
+    Application lifespan handler.
+
+    In development with SQLite, auto-creates all tables so the server
+    works out of the box without running migrations.
+    """
+    if settings.ENVIRONMENT == "development" and settings.is_sqlite:
+        get_db_manager().create_all_tables()
+    yield
 
 
 def create_app() -> FastAPI:
@@ -25,6 +40,7 @@ def create_app() -> FastAPI:
         version="0.0.1",
         docs_url="/docs",
         openapi_url="/openapi.json",
+        lifespan=lifespan,
     )
 
     # Register routers

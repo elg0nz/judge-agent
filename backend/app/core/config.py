@@ -22,12 +22,18 @@ class Settings(BaseSettings):
     DEBUG: bool = True
 
     # Database
-    DATABASE_URL: str = "postgresql://user:password@localhost:5432/judge_agent"
+    # Default: SQLite for local dev. Set to postgresql://... for production.
+    DATABASE_URL: str = "sqlite:///./judge_agent.db"
     DATABASE_POOL_SIZE: int = 10
     DATABASE_MAX_OVERFLOW: int = 20
     DATABASE_POOL_TIMEOUT: int = 30
     DATABASE_POOL_RECYCLE: int = 3600
     DATABASE_ECHO: bool = False
+
+    @property
+    def is_sqlite(self) -> bool:
+        """True when DATABASE_URL targets SQLite."""
+        return self.DATABASE_URL.startswith("sqlite")
 
     # CORS
     CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:8000"]
