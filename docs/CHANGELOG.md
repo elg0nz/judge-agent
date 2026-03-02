@@ -16,7 +16,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/) (v1.1.0) 
 
 ## [Unreleased]
 ### Added
-- (Active work will be listed here as v0.0.1-pre development begins)
+- (Active work will be listed here as v0.0.2-pre development begins)
+
+---
+
+## [0.0.1] — 2026-03-02
+
+### Added
+- `POST /judge` API endpoint: accepts `{ content }`, returns `{ score, signals, explanation }`
+- `DetectionOutput` schema: humanness score 0–100 (100=human, 0=AI), top signals, explanation
+- AI detection prompt: structural, vocabulary, and coherence signal rubric
+- Judge UI: textarea input, score display with color coding, signals list, explanation
+- Eval fixtures: 5 AI samples + 5 human samples in `backend/tests/fixtures/`
+- Eval script `backend/tests/eval_detection.py`: validates AI < 30, human > 70
+
+### Changed
+- Replaced broad `JudgeOutput` (origin, virality, distribution, explanation) with focused `DetectionOutput`
+- Simplified agent prompt to AI detection only (removed virality and distribution analysis)
+
+### Removed
+- `JudgeOutput`, `ViralityAnalysis`, `AudienceSegment`, `AudienceReaction`, `OriginPrediction` models (deferred to v0.0.2)
 
 ---
 

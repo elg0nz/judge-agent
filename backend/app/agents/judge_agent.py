@@ -1,7 +1,7 @@
-"""Content judge agent — evaluates content for origin, virality, distribution.
+"""Content judge agent — evaluates content for AI vs. human origin.
 
-Single Agno agent, single LLM call per content item. Produces all four outputs
-(origin, virality, distribution, explanation) as structured JSON in one reasoning pass.
+Single Agno agent, single LLM call per content item. Produces a humanness
+score (0–100), top signals, and explanation as structured JSON.
 
 See ARCHITECTURE.md § "Single Agno Agent, Structured Output"
 """
@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING
 from agno.agent import Agent
 from agno.models.anthropic import Claude
 
-from app.agents.output import ContentInput, ContentType, JudgeOutput
+from app.agents.output import ContentInput, ContentType, DetectionOutput
 
 if TYPE_CHECKING:
     from agno.models.base import Model
@@ -59,9 +59,9 @@ def create_judge_agent(
         name="content_judge",
         model=model or Claude(id=DEFAULT_MODEL_ID),
         system_message=_load_prompt(content_type),
-        output_schema=JudgeOutput,
+        output_schema=DetectionOutput,
         structured_outputs=True,
-        description="Evaluates content for AI/human origin, virality, audience distribution.",
+        description="Evaluates content for AI vs. human origin.",
     )
 
 
@@ -69,7 +69,7 @@ async def judge_content(
     content: str,
     content_type: ContentType = ContentType.TEXT,
     model: Model | None = None,
-) -> JudgeOutput:
+) -> DetectionOutput:
     """Run the judge pipeline on a piece of content.
 
     This is the main entry point for Phase 1 (text). Phases 2 and 3 will
@@ -81,17 +81,17 @@ async def judge_content(
         model: Optional Agno model override.
 
     Returns:
-        Structured judge output with origin, virality, distribution, explanation.
+        Structured detection output with score, signals, and explanation.
     """
     agent = create_judge_agent(content_type=content_type, model=model)
     content_input = ContentInput(content=content, content_type=content_type)
 
     response = await agent.arun(content_input.to_prompt())
 
-    # Agno returns structured output matching JudgeOutput when output_schema is set
-    if not isinstance(response.content, JudgeOutput):
+    # Agno returns structured output matching DetectionOutput when output_schema is set
+    if not isinstance(response.content, DetectionOutput):
         raise TypeError(
-            f"Expected JudgeOutput, got {type(response.content).__name__}"
+            f"Expected DetectionOutput, got {type(response.content).__name__}"
         )
 
     return response.content

@@ -61,3 +61,16 @@ export class ApiError extends Error {
     this.name = 'ApiError';
   }
 }
+
+/**
+ * Judge API types
+ */
+export interface JudgeRequest {
+  content: string;
+}
+
+export interface JudgeResponse {
+  score: number;
+  signals: string[];
+  explanation: string;
+}

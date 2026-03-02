@@ -2,8 +2,8 @@
  * API client with fetch wrapper and error handling
  */
 
-import { ApiError, ApiResponse, ApiClientConfig } from './types';
-import { API_BASE_URL, API_TIMEOUT_MS, API_RETRY_COUNT } from './constants';
+import { ApiError, ApiResponse, ApiClientConfig, JudgeRequest, JudgeResponse } from './types';
+import { API_BASE_URL, API_TIMEOUT_MS, API_RETRY_COUNT, API_ENDPOINTS } from './constants';
 
 /**
  * API Client class for making requests to the backend
@@ -133,4 +133,8 @@ export async function checkHealth(): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+export async function judgeContent(content: string): Promise<JudgeResponse> {
+  return apiClient.post<JudgeResponse>(API_ENDPOINTS.judge, { content } satisfies JudgeRequest);
 }

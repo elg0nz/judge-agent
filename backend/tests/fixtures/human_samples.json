@@ -1,0 +1,27 @@
+[
+  {
+    "text": "I've been thinking about this for weeks and I still can't figure out why my sourdough keeps coming out dense. I've tried everything — longer autolyse, less water, more folds, baking at 500F with the lid on for longer. My neighbor swears by her 80% hydration formula but honestly that sounds insane to me given how much my kitchen humidity fluctuates. Last batch was actually pretty decent though, which makes me think maybe the issue was just underproofing all along?",
+    "label": "human",
+    "source": "synthetic"
+  },
+  {
+    "text": "hot take: the obsession with 'clean code' has made most software engineers worse at their jobs. I've seen so many codebases that are beautifully structured, perfect abstractions everywhere, and completely impossible to actually change without breaking six other things. Sometimes the 200-line function that does one weird specific thing is the right call. Your future self will understand it because it's just... doing the thing. No layers of indirection required.",
+    "label": "human",
+    "source": "synthetic"
+  },
+  {
+    "text": "We moved here in 2019 and I still feel like a tourist sometimes. There's this coffee place on 14th that I've walked past probably 300 times and never gone in. I keep meaning to but there's always something. Maybe that's fine. Maybe cities are mostly made of places you never quite get to.",
+    "label": "human",
+    "source": "synthetic"
+  },
+  {
+    "text": "update on the shoulder thing: finally saw a PT and apparently I've been doing lat pulldowns wrong for literally 4 years. Not slightly wrong. Completely wrong. He watched me do one rep and just went 'yeah ok that explains everything.' I feel stupid but also like, at least there's a reason. Surgery is off the table which was the scary option so I'll take humiliating over surgery any day.",
+    "label": "human",
+    "source": "synthetic"
+  },
+  {
+    "text": "I don't understand why everyone is so convinced the housing market is about to crash. Like, yes, rates are high, yes affordability is terrible, but inventory is still historically low and there's no obvious catalyst that forces sellers to sell. The 2008 comparison keeps coming up and it's just... not the same? That crash required millions of adjustable rate mortgages resetting simultaneously. What's the equivalent today? I'm genuinely asking, not being rhetorical.",
+    "label": "human",
+    "source": "synthetic"
+  }
+]

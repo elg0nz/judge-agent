@@ -35,6 +35,7 @@ class Settings(BaseSettings):
     # API Keys and Secrets
     SECRET_KEY: str = "dev-secret-key-change-in-production"
     API_KEY_HEADER: str = "X-API-Key"
+    ANTHROPIC_API_KEY: str = ""
 
     # Logging
     LOG_LEVEL: str = "INFO"

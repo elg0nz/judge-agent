@@ -6,6 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from app.api.judge import router as judge_router
 from app.core.config import settings
 
 
@@ -25,6 +26,9 @@ def create_app() -> FastAPI:
         docs_url="/docs",
         openapi_url="/openapi.json",
     )
+
+    # Register routers
+    app.include_router(judge_router)
 
     # Add CORS middleware
     app.add_middleware(

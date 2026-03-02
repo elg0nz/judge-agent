@@ -33,4 +33,5 @@ export const TOAST_DURATION_MS = 3000;
 export const API_ENDPOINTS = {
   health: '/health',
   root: '/',
+  judge: '/judge',
 } as const;
