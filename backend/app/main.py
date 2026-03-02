@@ -1,6 +1,7 @@
 """Main FastAPI application entry point with health check and root endpoints."""
 
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI
@@ -22,6 +23,8 @@ async def lifespan(app: FastAPI):  # type: ignore[type-arg]
     Initializes DBOS for durable execution, then auto-creates all SQLite
     tables in development so the server works out of the box.
     """
+    # DBOS.launch() runs once per worker process (expected with multi-worker uvicorn).
+    # This is intentional: each worker needs its own DBOS context.
     from dbos import DBOS, DBOSConfig
     config: DBOSConfig = {
         "name": "judge-agent",
@@ -30,7 +33,12 @@ async def lifespan(app: FastAPI):  # type: ignore[type-arg]
     DBOS(config=config)
     DBOS.launch()
     if settings.ENVIRONMENT == "development" and settings.is_sqlite:
-        get_db_manager().create_all_tables()
+        # create_all_tables() is idempotent (CREATE TABLE IF NOT EXISTS).
+        # Use a sentinel file to skip the DDL round-trip on every worker after the first.
+        sentinel = Path(".sqlite_tables_created")
+        if not sentinel.exists():
+            get_db_manager().create_all_tables()
+            sentinel.touch()
     yield
 
 

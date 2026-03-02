@@ -6,10 +6,12 @@ import hashlib
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.agents.judge_agent import run_judge
 from app.agents.output import JudgeOutput
+from app.agents.video_pipeline import judge_video_workflow
 from app.db.dbos import get_db
 from app.db.models import JudgeRun
 
@@ -50,14 +52,20 @@ async def judge_text(
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
     if request.user_uuid:
-        run = JudgeRun(
-            id=run_id,
-            user_uuid=request.user_uuid,
-            input_text=request.content,
-            output=result.model_dump(),
-        )
-        db.add(run)
-        db.commit()
+        try:
+            run = JudgeRun(
+                id=run_id,
+                user_uuid=request.user_uuid,
+                input_text=request.content,
+                output=result.model_dump(),
+            )
+            db.add(run)
+            db.commit()
+        except IntegrityError:
+            db.rollback()
+            existing = db.query(JudgeRun).filter_by(id=run_id).first()
+            if existing:
+                return JudgeOutput.model_validate(existing.output)
 
     return result
 
@@ -81,6 +89,21 @@ def get_history(user_uuid: str, db: Session = Depends(get_db)) -> list[RunSummar
         )
         for r in runs
     ]
+
+
+class VideoJudgeRequest(BaseModel):
+    upload_id: str
+    user_uuid: str | None = None
+
+
+@router.post("/video", response_model=JudgeOutput)
+async def judge_video(request: VideoJudgeRequest) -> JudgeOutput:
+    """Judge video content through the video analysis pipeline."""
+    try:
+        result = judge_video_workflow(request.upload_id, request.user_uuid)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    return result
 
 
 __all__ = ["router"]
