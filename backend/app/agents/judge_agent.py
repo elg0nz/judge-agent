@@ -15,6 +15,7 @@ from agno.agent import Agent
 from agno.models.anthropic import Claude
 
 from app.agents.output import ContentInput, ContentType, DetectionOutput
+from app.core.config import settings
 
 if TYPE_CHECKING:
     from agno.models.base import Model
@@ -57,7 +58,7 @@ def create_judge_agent(
     """
     return Agent(
         name="content_judge",
-        model=model or Claude(id=DEFAULT_MODEL_ID),
+        model=model or Claude(id=DEFAULT_MODEL_ID, api_key=settings.ANTHROPIC_API_KEY),
         system_message=_load_prompt(content_type),
         output_schema=DetectionOutput,
         description="Evaluates content for AI vs. human origin.",
