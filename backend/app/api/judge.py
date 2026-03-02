@@ -13,7 +13,7 @@ from app.agents.judge_agent import run_judge
 from app.agents.output import JudgeOutput
 from app.agents.video_pipeline import judge_video_workflow
 from app.db.dbos import get_db
-from app.db.models import JudgeRun
+from app.db.models import JudgeRun, User
 
 router = APIRouter(prefix="/judge", tags=["judge"])
 
@@ -40,8 +40,14 @@ async def judge_text(
     db: Session = Depends(get_db),
 ) -> JudgeOutput:
     """Judge text content. If user_uuid provided, caches by md5(content+user_uuid)."""
-    if request.user_uuid:
-        run_id = _run_id(request.content, request.user_uuid)
+    # Validate user_uuid exists before using it for caching/storage.
+    # A stale or fabricated UUID would cause an FK violation on insert.
+    user_uuid = request.user_uuid
+    if user_uuid and not db.query(User).filter_by(uuid=user_uuid).first():
+        raise HTTPException(status_code=404, detail="Unknown user_uuid")
+
+    if user_uuid:
+        run_id = _run_id(request.content, user_uuid)
         existing = db.query(JudgeRun).filter_by(id=run_id).first()
         if existing:
             return JudgeOutput.model_validate(existing.output)
@@ -51,11 +57,11 @@ async def judge_text(
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
-    if request.user_uuid:
+    if user_uuid:
         try:
             run = JudgeRun(
                 id=run_id,
-                user_uuid=request.user_uuid,
+                user_uuid=user_uuid,
                 input_text=request.content,
                 output=result.model_dump(),
             )

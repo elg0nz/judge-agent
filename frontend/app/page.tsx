@@ -529,12 +529,14 @@ function TextAnalysis({
   user,
   runs,
   historyLoading,
+  onSignOut,
 }: {
   onBack: () => void;
   user: UserProfile;
   runs: RunSummary[];
   historyLoading: boolean;
   onNewRun: (run: RunSummary) => void;
+  onSignOut: () => void;
 }): React.ReactElement {
   const [text, setText] = useState('');
   const [result, setResult] = useState<JudgeResponse | null>(null);
@@ -552,6 +554,11 @@ function TextAnalysis({
       const response = await judgeContent(text, user.uuid);
       setResult(response);
     } catch (err) {
+      if (err instanceof ApiError && err.status === 404) {
+        // Stale user_uuid — force re-login
+        onSignOut();
+        return;
+      }
       if (err instanceof ApiError) {
         setError(`Error ${err.status}: ${err.message}`);
       } else {
@@ -712,6 +719,7 @@ export default function Home(): React.ReactElement {
               runs={runs}
               historyLoading={historyLoading}
               onNewRun={handleNewRun}
+              onSignOut={handleSignOut}
             />
           )}
           {mode === 'video' && (

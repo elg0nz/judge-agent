@@ -4,7 +4,7 @@ import uuid as uuid_module
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import JSON, DateTime, ForeignKey, func
+from sqlalchemy import JSON, DateTime, ForeignKey, String, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -35,26 +35,6 @@ class TimestampedMixin:
         default=lambda: datetime.now(UTC),
         nullable=False,
     )
-
-
-class Case(Base, TimestampedMixin):
-    """
-    Legal case entity.
-
-    Represents a judicial case that will be analyzed by the reasoning agent.
-    """
-
-    __tablename__ = "cases"
-
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    title: Mapped[str] = mapped_column(nullable=False, index=True)
-    description: Mapped[str | None] = mapped_column(nullable=True)
-    jurisdiction: Mapped[str | None] = mapped_column(nullable=True)
-    status: Mapped[str] = mapped_column(default="open", nullable=False)
-
-    def __repr__(self) -> str:
-        """Return string representation of Case."""
-        return f"<Case(id={self.id}, title={self.title!r})>"
 
 
 class User(Base, TimestampedMixin):
@@ -96,4 +76,26 @@ class JudgeRun(Base):
         return f"<JudgeRun(id={self.id!r}, user_uuid={self.user_uuid!r})>"
 
 
-__all__ = ["Base", "TimestampedMixin", "Case", "User", "JudgeRun"]
+class Feedback(Base):
+    """User feedback on judge analysis results."""
+
+    __tablename__ = "feedback"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    # Flexible request identifier: md5(content+user_uuid) for text, upload_id for video.
+    # Not a FK so it works for both content types regardless of judge_runs existence.
+    judge_request_id: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
+    rating: Mapped[str] = mapped_column(String(4), nullable=False)  # "up" or "down"
+    content_type: Mapped[str] = mapped_column(String(5), nullable=False)  # "text" or "video"
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        default=lambda: datetime.now(UTC),
+        nullable=False,
+    )
+
+    def __repr__(self) -> str:
+        return f"<Feedback(id={self.id!r}, judge_request_id={self.judge_request_id!r}, rating={self.rating!r})>"
+
+
+__all__ = ["Base", "TimestampedMixin", "User", "JudgeRun", "Feedback"]
