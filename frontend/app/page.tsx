@@ -1,13 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { ArrowRight, Loader2, Zap, ChevronDown, ChevronRight, LogOut } from 'lucide-react';
-import { judgeContent, signup, getHistory } from './lib/api';
-import type { JudgeResponse, DistributionSegment, UserProfile, RunSummary } from './lib/types';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { ArrowRight, Loader2, Zap, ChevronDown, ChevronRight, LogOut, FileText, Video, ArrowLeft, Upload } from 'lucide-react';
+import { judgeContent, signup, getHistory, uploadFile } from './lib/api';
+import type { JudgeResponse, DistributionSegment, UserProfile, RunSummary, UploadResponse } from './lib/types';
 import { ApiError } from './lib/types';
 import { cn } from './lib/utils';
 
 const STORAGE_KEY = 'feltsense_user';
+
+type Mode = 'select' | 'text' | 'video';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -167,7 +169,7 @@ function HistoryRow({ run }: { run: RunSummary }): React.ReactElement {
   );
 }
 
-function HistoryPanel({ userUuid, runs, loading }: { userUuid: string; runs: RunSummary[]; loading: boolean }): React.ReactElement {
+function HistoryPanel({ runs, loading }: { runs: RunSummary[]; loading: boolean }): React.ReactElement {
   return (
     <div className="mt-10">
       <div className="flex items-center gap-2 mb-4">
@@ -251,6 +253,374 @@ function LoginScreen({ onLogin }: { onLogin: (user: UserProfile) => void }): Rea
   );
 }
 
+// ── Mode selector ─────────────────────────────────────────────────────────────
+
+function ModeSelector({ onSelect }: { onSelect: (mode: 'text' | 'video') => void }): React.ReactElement {
+  return (
+    <div>
+      <div className="mb-10">
+        <h1 className="text-3xl font-bold text-zinc-900 tracking-tight leading-tight">
+          Content Intelligence
+        </h1>
+        <p className="mt-2 text-zinc-500 text-base leading-relaxed">
+          Choose how you want to analyze content.
+        </p>
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <button
+          onClick={() => onSelect('text')}
+          className="group flex flex-col items-start gap-4 p-6 rounded-xl border border-zinc-200 bg-white shadow-sm hover:border-zinc-400 hover:shadow-md transition-all text-left"
+        >
+          <div className="w-10 h-10 rounded-lg bg-zinc-100 group-hover:bg-zinc-200 flex items-center justify-center transition-colors">
+            <FileText className="w-5 h-5 text-zinc-700" />
+          </div>
+          <div>
+            <div className="text-sm font-semibold text-zinc-900 mb-1">Text</div>
+            <div className="text-xs text-zinc-500 leading-relaxed">Paste or type content to analyze</div>
+          </div>
+        </button>
+
+        <button
+          onClick={() => onSelect('video')}
+          className="group flex flex-col items-start gap-4 p-6 rounded-xl border border-zinc-200 bg-white shadow-sm hover:border-zinc-400 hover:shadow-md transition-all text-left"
+        >
+          <div className="w-10 h-10 rounded-lg bg-zinc-100 group-hover:bg-zinc-200 flex items-center justify-center transition-colors">
+            <Video className="w-5 h-5 text-zinc-700" />
+          </div>
+          <div>
+            <div className="text-sm font-semibold text-zinc-900 mb-1">Video</div>
+            <div className="text-xs text-zinc-500 leading-relaxed">Upload a video file to analyze</div>
+          </div>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── Video upload ──────────────────────────────────────────────────────────────
+
+function VideoUpload({ onBack }: { onBack: () => void }): React.ReactElement {
+  const [isDraggingOver, setIsDraggingOver] = useState(false);
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [subtitleFile, setSubtitleFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadResult, setUploadResult] = useState<UploadResponse | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const videoInputRef = useRef<HTMLInputElement>(null);
+  const subtitleInputRef = useRef<HTMLInputElement>(null);
+
+  const VIDEO_TYPES = ['.mp4', '.mov', '.webm'];
+  const SUBTITLE_TYPES = ['.srt', '.vtt', '.txt'];
+
+  function isVideoFile(file: File): boolean {
+    return VIDEO_TYPES.some(ext => file.name.toLowerCase().endsWith(ext));
+  }
+
+  function isSubtitleFile(file: File): boolean {
+    return SUBTITLE_TYPES.some(ext => file.name.toLowerCase().endsWith(ext));
+  }
+
+  function handleFiles(files: FileList): void {
+    for (const file of Array.from(files)) {
+      if (isVideoFile(file)) {
+        setVideoFile(file);
+      } else if (isSubtitleFile(file)) {
+        setSubtitleFile(file);
+      }
+    }
+  }
+
+  const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>): void => {
+    e.preventDefault();
+    setIsDraggingOver(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent<HTMLDivElement>): void => {
+    e.preventDefault();
+    setIsDraggingOver(false);
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>): void => {
+    e.preventDefault();
+    setIsDraggingOver(false);
+    if (e.dataTransfer.files.length > 0) {
+      handleFiles(e.dataTransfer.files);
+    }
+  }, []);
+
+  function handleVideoInputChange(e: React.ChangeEvent<HTMLInputElement>): void {
+    if (e.target.files && e.target.files.length > 0) {
+      handleFiles(e.target.files);
+    }
+  }
+
+  function handleSubtitleInputChange(e: React.ChangeEvent<HTMLInputElement>): void {
+    if (e.target.files && e.target.files.length > 0) {
+      setSubtitleFile(e.target.files[0]);
+    }
+  }
+
+  async function handleUpload(): Promise<void> {
+    if (!videoFile) return;
+    setUploading(true);
+    setError(null);
+    setUploadResult(null);
+    try {
+      const result = await uploadFile(videoFile, subtitleFile ?? undefined);
+      setUploadResult(result);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(`Error ${err.status}: ${err.message}`);
+      } else {
+        setError(err instanceof Error ? err.message : 'Upload failed');
+      }
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  function formatBytes(bytes: number): string {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  return (
+    <div>
+      <div className="mb-8">
+        <button
+          onClick={onBack}
+          className="inline-flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-800 transition-colors mb-6"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" />
+          Back
+        </button>
+        <h1 className="text-3xl font-bold text-zinc-900 tracking-tight leading-tight">
+          Video Analysis
+        </h1>
+        <p className="mt-2 text-zinc-500 text-base leading-relaxed">
+          Upload a video file and we'll analyze it for origin, virality, and audience distribution.
+        </p>
+      </div>
+
+      {/* Drop zone */}
+      <div
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        onClick={() => videoInputRef.current?.click()}
+        className={cn(
+          'relative flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed bg-white cursor-pointer transition-all',
+          'px-6 py-12',
+          isDraggingOver
+            ? 'border-zinc-500 bg-zinc-50'
+            : 'border-zinc-200 hover:border-zinc-400 hover:bg-zinc-50/50'
+        )}
+      >
+        <div className={cn(
+          'w-10 h-10 rounded-lg flex items-center justify-center transition-colors',
+          isDraggingOver ? 'bg-zinc-200' : 'bg-zinc-100'
+        )}>
+          <Upload className="w-5 h-5 text-zinc-600" />
+        </div>
+        {videoFile ? (
+          <div className="text-center">
+            <p className="text-sm font-medium text-zinc-900">{videoFile.name}</p>
+            <p className="text-xs text-zinc-400 mt-0.5">{formatBytes(videoFile.size)}</p>
+          </div>
+        ) : (
+          <div className="text-center">
+            <p className="text-sm font-medium text-zinc-700">Drop video file here or click to browse</p>
+            <p className="text-xs text-zinc-400 mt-1">.mp4, .mov, .webm</p>
+          </div>
+        )}
+        <input
+          ref={videoInputRef}
+          type="file"
+          accept=".mp4,.mov,.webm,video/mp4,video/quicktime,video/webm"
+          className="sr-only"
+          onChange={handleVideoInputChange}
+          onClick={e => e.stopPropagation()}
+        />
+      </div>
+
+      {/* Dev mode notice */}
+      <p className="mt-3 text-xs text-zinc-400">
+        Dev mode: files stored in <code className="font-mono bg-zinc-100 px-1 py-0.5 rounded text-zinc-600">./tmp/</code>. Production will use S3.
+      </p>
+
+      {/* Subtitle info */}
+      <div className="mt-4 px-4 py-3.5 rounded-lg bg-zinc-50 border border-zinc-200">
+        <p className="text-xs text-zinc-600 leading-relaxed">
+          Drop a subtitle file (<span className="font-mono text-zinc-500">.srt</span>, <span className="font-mono text-zinc-500">.vtt</span>) and we'll use it directly. No subtitle file? We'll generate one automatically using ElevenLabs.
+        </p>
+        {subtitleFile ? (
+          <div className="mt-2.5 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <FileText className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+              <span className="text-xs font-medium text-zinc-700">{subtitleFile.name}</span>
+              <span className="text-xs text-zinc-400">{formatBytes(subtitleFile.size)}</span>
+            </div>
+            <button
+              onClick={() => setSubtitleFile(null)}
+              className="text-xs text-zinc-400 hover:text-zinc-700 transition-colors"
+            >
+              Remove
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => subtitleInputRef.current?.click()}
+            className="mt-2.5 text-xs font-medium text-zinc-500 hover:text-zinc-800 underline underline-offset-2 transition-colors"
+          >
+            Add subtitle file
+          </button>
+        )}
+        <input
+          ref={subtitleInputRef}
+          type="file"
+          accept=".srt,.vtt,.txt"
+          className="sr-only"
+          onChange={handleSubtitleInputChange}
+        />
+      </div>
+
+      {/* Upload button */}
+      <div className="mt-4 flex justify-end">
+        <button
+          onClick={handleUpload}
+          disabled={uploading || !videoFile}
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-zinc-900 text-white text-sm font-medium hover:bg-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+        >
+          {uploading ? (
+            <><Loader2 className="w-4 h-4 animate-spin" /> Uploading…</>
+          ) : (
+            <>Upload <ArrowRight className="w-4 h-4" /></>
+          )}
+        </button>
+      </div>
+
+      {error && (
+        <div className="mt-4 px-4 py-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-sm">
+          {error}
+        </div>
+      )}
+
+      {uploadResult && (
+        <div className="mt-4 px-4 py-3.5 rounded-lg bg-emerald-50 border border-emerald-200">
+          <p className="text-xs font-semibold text-emerald-700 mb-1">Upload successful</p>
+          <div className="flex items-center gap-2 text-xs text-emerald-600">
+            <span className="font-mono bg-emerald-100 px-2 py-0.5 rounded">{uploadResult.upload_id}</span>
+            {uploadResult.has_subtitles && (
+              <span className="text-emerald-500">subtitles included</span>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Text analysis ─────────────────────────────────────────────────────────────
+
+function TextAnalysis({
+  onBack,
+  user,
+  runs,
+  historyLoading,
+}: {
+  onBack: () => void;
+  user: UserProfile;
+  runs: RunSummary[];
+  historyLoading: boolean;
+  onNewRun: (run: RunSummary) => void;
+}): React.ReactElement {
+  const [text, setText] = useState('');
+  const [result, setResult] = useState<JudgeResponse | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const wordCount = text.trim() ? text.trim().split(/\s+/).length : 0;
+
+  async function handleJudge(): Promise<void> {
+    if (!text.trim()) return;
+    setLoading(true);
+    setError(null);
+    setResult(null);
+    try {
+      const response = await judgeContent(text, user.uuid);
+      setResult(response);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(`Error ${err.status}: ${err.message}`);
+      } else {
+        setError(err instanceof Error ? err.message : 'Unknown error');
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div>
+      <div className="mb-8">
+        <button
+          onClick={onBack}
+          className="inline-flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-800 transition-colors mb-6"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" />
+          Back
+        </button>
+        <h1 className="text-3xl font-bold text-zinc-900 tracking-tight leading-tight">
+          Content Intelligence
+        </h1>
+        <p className="mt-2 text-zinc-500 text-base leading-relaxed">
+          Paste any text and get origin detection, virality score, audience distribution, and a full explanation.
+        </p>
+      </div>
+
+      <div className="relative">
+        <textarea
+          className="w-full h-52 px-4 py-3.5 rounded-xl border border-zinc-200 bg-white text-sm text-zinc-900 placeholder-zinc-400 font-mono resize-none shadow-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/10 focus:border-zinc-400 transition-colors"
+          placeholder="Paste text here..."
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+        />
+        {wordCount > 0 && (
+          <div className="absolute bottom-3 right-3 text-xs text-zinc-400 pointer-events-none">
+            {wordCount} {wordCount === 1 ? 'word' : 'words'}
+          </div>
+        )}
+      </div>
+
+      <div className="mt-3 flex justify-end">
+        <button
+          onClick={handleJudge}
+          disabled={loading || !text.trim()}
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-zinc-900 text-white text-sm font-medium hover:bg-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+        >
+          {loading ? (
+            <><Loader2 className="w-4 h-4 animate-spin" /> Analyzing…</>
+          ) : (
+            <>Analyze <ArrowRight className="w-4 h-4" /></>
+          )}
+        </button>
+      </div>
+
+      {error && (
+        <div className="mt-4 px-4 py-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-sm">
+          {error}
+        </div>
+      )}
+
+      {result && <div className="mt-8"><ResultCard result={result} /></div>}
+
+      <HistoryPanel runs={runs} loading={historyLoading} />
+    </div>
+  );
+}
+
 // ── Header ────────────────────────────────────────────────────────────────────
 
 function Header({ user, onSignOut }: { user: UserProfile | null; onSignOut: () => void }): React.ReactElement {
@@ -282,10 +652,7 @@ function Header({ user, onSignOut }: { user: UserProfile | null; onSignOut: () =
 export default function Home(): React.ReactElement {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [ready, setReady] = useState(false);
-  const [text, setText] = useState('');
-  const [result, setResult] = useState<JudgeResponse | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [mode, setMode] = useState<Mode>('select');
   const [runs, setRuns] = useState<RunSummary[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
 
@@ -312,44 +679,22 @@ export default function Home(): React.ReactElement {
     localStorage.removeItem(STORAGE_KEY);
     setUser(null);
     setRuns([]);
-    setResult(null);
+    setMode('select');
   }
 
-  const wordCount = text.trim() ? text.trim().split(/\s+/).length : 0;
+  function handleLogin(u: UserProfile): void {
+    setUser(u);
+    setMode('select');
+  }
 
-  async function handleJudge(): Promise<void> {
-    if (!text.trim()) return;
-    setLoading(true);
-    setError(null);
-    setResult(null);
-    try {
-      const response = await judgeContent(text, user?.uuid);
-      setResult(response);
-      if (user) {
-        // Optimistically prepend to history
-        const newRun: RunSummary = {
-          id: Math.random().toString(36).slice(2), // placeholder id
-          input_preview: text.slice(0, 120),
-          output: response,
-          created_at: new Date().toISOString(),
-        };
-        setRuns(prev => [newRun, ...prev]);
-      }
-    } catch (err) {
-      if (err instanceof ApiError) {
-        setError(`Error ${err.status}: ${err.message}`);
-      } else {
-        setError(err instanceof Error ? err.message : 'Unknown error');
-      }
-    } finally {
-      setLoading(false);
-    }
+  function handleNewRun(run: RunSummary): void {
+    setRuns(prev => [run, ...prev]);
   }
 
   // Wait for localStorage hydration to avoid flash
   if (!ready) return <div className="min-h-screen bg-zinc-50" />;
 
-  if (!user) return <LoginScreen onLogin={setUser} />;
+  if (!user) return <LoginScreen onLogin={handleLogin} />;
 
   return (
     <>
@@ -357,54 +702,21 @@ export default function Home(): React.ReactElement {
 
       <main className="min-h-screen bg-zinc-50 pt-14">
         <div className="max-w-2xl mx-auto px-6 py-16">
-
-          <div className="mb-10">
-            <h1 className="text-3xl font-bold text-zinc-900 tracking-tight leading-tight">
-              Content Intelligence
-            </h1>
-            <p className="mt-2 text-zinc-500 text-base leading-relaxed">
-              Paste any text and get origin detection, virality score, audience distribution, and a full explanation.
-            </p>
-          </div>
-
-          <div className="relative">
-            <textarea
-              className="w-full h-52 px-4 py-3.5 rounded-xl border border-zinc-200 bg-white text-sm text-zinc-900 placeholder-zinc-400 font-mono resize-none shadow-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/10 focus:border-zinc-400 transition-colors"
-              placeholder="Paste text here..."
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-            />
-            {wordCount > 0 && (
-              <div className="absolute bottom-3 right-3 text-xs text-zinc-400 pointer-events-none">
-                {wordCount} {wordCount === 1 ? 'word' : 'words'}
-              </div>
-            )}
-          </div>
-
-          <div className="mt-3 flex justify-end">
-            <button
-              onClick={handleJudge}
-              disabled={loading || !text.trim()}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-zinc-900 text-white text-sm font-medium hover:bg-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-            >
-              {loading ? (
-                <><Loader2 className="w-4 h-4 animate-spin" /> Analyzing…</>
-              ) : (
-                <>Analyze <ArrowRight className="w-4 h-4" /></>
-              )}
-            </button>
-          </div>
-
-          {error && (
-            <div className="mt-4 px-4 py-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-sm">
-              {error}
-            </div>
+          {mode === 'select' && (
+            <ModeSelector onSelect={setMode} />
           )}
-
-          {result && <div className="mt-8"><ResultCard result={result} /></div>}
-
-          <HistoryPanel userUuid={user.uuid} runs={runs} loading={historyLoading} />
-
+          {mode === 'text' && (
+            <TextAnalysis
+              onBack={() => setMode('select')}
+              user={user}
+              runs={runs}
+              historyLoading={historyLoading}
+              onNewRun={handleNewRun}
+            />
+          )}
+          {mode === 'video' && (
+            <VideoUpload onBack={() => setMode('select')} />
+          )}
         </div>
       </main>
     </>

@@ -2,7 +2,7 @@
  * API client with fetch wrapper and error handling
  */
 
-import { ApiError, ApiResponse, ApiClientConfig, JudgeRequest, JudgeResponse, UserProfile, RunSummary } from './types';
+import { ApiError, ApiResponse, ApiClientConfig, JudgeRequest, JudgeResponse, UserProfile, RunSummary, UploadResponse } from './types';
 import { API_BASE_URL, API_TIMEOUT_MS, API_RETRY_COUNT, API_ENDPOINTS } from './constants';
 
 /**
@@ -147,4 +147,21 @@ export async function signup(username: string): Promise<UserProfile> {
 
 export async function getHistory(userUuid: string): Promise<RunSummary[]> {
   return apiClient.get<RunSummary[]>(`/judge/history?user_uuid=${encodeURIComponent(userUuid)}`);
+}
+
+export async function uploadFile(videoFile: File, subtitleFile?: File): Promise<UploadResponse> {
+  const formData = new FormData();
+  formData.append('video_file', videoFile);
+  if (subtitleFile) {
+    formData.append('subtitle_file', subtitleFile);
+  }
+  const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.upload}`, {
+    method: 'POST',
+    body: formData,
+  });
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'Upload failed' }));
+    throw new ApiError(response.status, error.detail || 'Upload failed');
+  }
+  return response.json();
 }

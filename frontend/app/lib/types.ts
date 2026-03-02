@@ -104,3 +104,8 @@ export interface RunSummary {
   output: JudgeResponse;
   created_at: string;
 }
+
+export interface UploadResponse {
+  upload_id: string;
+  has_subtitles: boolean;
+}

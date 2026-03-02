@@ -34,4 +34,5 @@ export const API_ENDPOINTS = {
   health: '/health',
   root: '/',
   judge: '/judge',
+  upload: '/upload',
 } as const;
