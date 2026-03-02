@@ -1,6 +1,15 @@
 # judge-agent
 
-A judicial reasoning and decision-making agent for the Feltsense platform.
+A judge agent that evaluates text and video content for AI vs. human origin, virality potential, audience distribution, and produces a traceable explanation for each output.
+
+---
+
+## 🗂 Start Here
+
+Two documents define this project — read these before touching code:
+
+- **[ASSIGNMENT.md](docs/ASSIGNMENT.md)** — Original Feltsense take-home spec. The problem statement, constraints, and what success looks like.
+- **[ARCHITECTURE.md](ARCHITECTURE.md)** — Design decisions, build sequence (text → transcripts → video frames), tech stack rationale, and file structure.
 
 ---
 
