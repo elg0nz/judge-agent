@@ -15,8 +15,42 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/) (v1.1.0) 
 ---
 
 ## [Unreleased]
+
+---
+
+## [0.0.3] — 2026-03-02
+
 ### Added
-- (Active work will be listed here as v0.0.2-pre development begins)
+- `POST /auth/signup` — idempotent username-only signup (username → UUID)
+- `User` model (uuid PK, unique username) and `JudgeRun` model (md5 PK, input_text, output JSON)
+- `GET /judge/history` — returns last 50 runs per user, newest first
+- Deduplication: `md5(content + user_uuid)` cache key on `POST /judge` — same input returns cached result
+- Frontend: login screen (single username field, localStorage session)
+- Frontend: `@username` header with "Switch user" (clears localStorage)
+- Frontend: history panel below analyze button with expandable run rows
+
+### Changed
+- `POST /judge` now accepts optional `user_uuid` — if provided, persists and caches runs
+
+---
+
+## [0.0.2] — 2026-03-02
+
+### Added
+- Full 4-dimension `JudgeOutput` schema: `origin` (prediction + confidence + signals), `virality` (score + drivers), `distribution` (2–4 segments with platforms and reactions), `explanation`
+- DBOS durable execution: `@DBOS.workflow()` and `@DBOS.step(retries_allowed=True)` with 3-attempt exponential backoff
+- 4-section prompt: origin (structural/vocab/coherence), virality (hook/emotion/controversy), distribution (named segments), output (strict JSON)
+- Prompt addenda for transcript and video content types (`judge_transcript.txt`, `judge_video.txt`)
+- Frontend: 4-section result card (Origin badge, Virality gauge, Distribution cards, Analysis prose)
+- Eval fixtures expanded to 15 AI + 15 human samples
+- Eval harness: concurrent bounded execution with rate-limit backoff
+
+### Changed
+- Replaced `DetectionOutput` (score/signals/explanation) with full `JudgeOutput` (origin/virality/distribution/explanation)
+- Agent prompt expanded from detection-only to full 4-dimension analysis
+
+### Removed
+- `DetectionOutput` model (superseded by `JudgeOutput`)
 
 ---
 
