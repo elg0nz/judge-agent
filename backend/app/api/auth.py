@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -35,6 +35,8 @@ def signup(request: SignupRequest, db: Session = Depends(get_db)) -> UserRespons
         except IntegrityError:
             db.rollback()
             user = db.query(User).filter_by(username=request.username).first()
+    if user is None:
+        raise HTTPException(500, "User creation failed")
     return UserResponse(username=user.username, uuid=user.uuid)
 
 

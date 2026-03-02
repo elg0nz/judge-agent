@@ -52,8 +52,8 @@ class User(Base, TimestampedMixin):
         return f"<User(username={self.username!r}, uuid={self.uuid!r})>"
 
 
-class JudgeRun(Base):
-    """Stored result of a judge invocation. PK is md5(content+user_uuid) as a cache key."""
+class JudgeRun(Base, TimestampedMixin):
+    """Stored result of a judge invocation. PK is md5(content\\0user_uuid) as a cache key."""
 
     __tablename__ = "judge_runs"
 
@@ -65,12 +65,6 @@ class JudgeRun(Base):
     )
     input_text: Mapped[str] = mapped_column(nullable=False)
     output: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        default=lambda: datetime.now(UTC),
-        nullable=False,
-    )
 
     def __repr__(self) -> str:
         return f"<JudgeRun(id={self.id!r}, user_uuid={self.user_uuid!r})>"

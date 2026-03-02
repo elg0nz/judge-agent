@@ -4,14 +4,17 @@ import uuid
 from pathlib import Path
 
 import aiofiles
-from fastapi import APIRouter, File, UploadFile, HTTPException
+from fastapi import APIRouter, File, HTTPException, UploadFile
 from pydantic import BaseModel
 
+from app.core.config import settings
+
 _CHUNK_SIZE = 1024 * 1024  # 1 MiB
+MAX_UPLOAD_BYTES = 500 * 1024 * 1024  # 500 MiB
+
+_ALLOWED_VIDEO_MIME_TYPES = {"video/mp4", "video/quicktime", "video/webm"}
 
 router = APIRouter(prefix="/upload", tags=["upload"])
-
-TMP_DIR = Path("./tmp")
 
 
 class UploadResponse(BaseModel):
@@ -25,7 +28,15 @@ async def upload_files(
     subtitle_file: UploadFile | None = File(None),
 ) -> UploadResponse:
     """Upload video and optional subtitle file for analysis."""
-    # Validate video extension
+    # Validate MIME type (primary guard — client-supplied but more reliable than filename)
+    if video_file.content_type and video_file.content_type not in _ALLOWED_VIDEO_MIME_TYPES:
+        raise HTTPException(
+            400,
+            f"Unsupported video MIME type: {video_file.content_type}. "
+            "Expected video/mp4, video/quicktime, or video/webm",
+        )
+
+    # Validate video extension (secondary guard)
     if video_file.filename:
         ext = Path(video_file.filename).suffix.lower()
         if ext not in {".mp4", ".mov", ".webm"}:
@@ -34,13 +45,17 @@ async def upload_files(
         ext = ".mp4"
 
     upload_id = str(uuid.uuid4())
-    upload_dir = TMP_DIR / upload_id
+    upload_dir = settings.TMP_DIR / upload_id
     upload_dir.mkdir(parents=True, exist_ok=True)
 
-    # Save video
+    # Save video with size limit
     video_path = upload_dir / f"video{ext}"
+    bytes_written = 0
     async with aiofiles.open(video_path, "wb") as f:
         while chunk := await video_file.read(_CHUNK_SIZE):
+            bytes_written += len(chunk)
+            if bytes_written > MAX_UPLOAD_BYTES:
+                raise HTTPException(413, f"Upload exceeds {MAX_UPLOAD_BYTES // (1024 * 1024)} MiB limit")
             await f.write(chunk)
 
     # Save subtitle if provided

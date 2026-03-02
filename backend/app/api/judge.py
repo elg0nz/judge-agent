@@ -35,7 +35,7 @@ class RunSummary(BaseModel):
 
 def _run_id(content: str, user_uuid: str) -> str:
     """Cache key (not cryptographic) — dedup identical content from the same user."""
-    return hashlib.md5((content + user_uuid).encode()).hexdigest()
+    return hashlib.md5(f"{content}\x00{user_uuid}".encode()).hexdigest()
 
 
 @router.post("", response_model=JudgeOutput)
@@ -110,7 +110,7 @@ class VideoJudgeRequest(BaseModel):
 async def judge_video(request: VideoJudgeRequest) -> JudgeOutput:
     """Judge video content through the video analysis pipeline."""
     try:
-        result = judge_video_workflow(request.upload_id, request.user_uuid)
+        result = await judge_video_workflow(request.upload_id, request.user_uuid)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
     return result

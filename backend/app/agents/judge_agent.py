@@ -30,13 +30,13 @@ DEFAULT_MODEL_ID = "claude-sonnet-4-20250514"
 
 def _load_prompt(phase: ContentType) -> str:
     """Load the system prompt for a given content phase."""
-    base = (_PROMPTS_DIR / "judge_text.txt").read_text()
+    parts = [(_PROMPTS_DIR / "judge_text.txt").read_text()]
     if phase == ContentType.TRANSCRIPT:
-        base += "\n" + (_PROMPTS_DIR / "judge_transcript.txt").read_text()
+        parts.append((_PROMPTS_DIR / "judge_transcript.txt").read_text())
     elif phase == ContentType.VIDEO:
-        base += "\n" + (_PROMPTS_DIR / "judge_transcript.txt").read_text()
-        base += "\n" + (_PROMPTS_DIR / "judge_video.txt").read_text()
-    return base
+        parts.append((_PROMPTS_DIR / "judge_transcript.txt").read_text())
+        parts.append((_PROMPTS_DIR / "judge_video.txt").read_text())
+    return "\n".join(parts)
 
 
 def create_judge_agent(

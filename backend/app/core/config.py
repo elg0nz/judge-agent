@@ -1,6 +1,7 @@
 """Application configuration using Pydantic Settings."""
 
 import json
+from pathlib import Path
 from typing import Any, Literal
 
 from pydantic.fields import FieldInfo
@@ -84,6 +85,9 @@ class Settings(BaseSettings):
 
     # Logging
     LOG_LEVEL: str = "INFO"
+
+    # File storage
+    TMP_DIR: Path = Path("./tmp")
 
     class Config:
         """Pydantic config for Settings."""
