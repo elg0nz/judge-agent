@@ -100,7 +100,7 @@ Interactive docs at [http://localhost:8000/docs](http://localhost:8000/docs) onc
 This project follows **BARDD** — specs are written before code. Every feature starts as a doc in `docs/v0.x.y-pre/README.md`, gets implemented against its acceptance criteria, then the `-pre` suffix is dropped on merge.
 
 Current release: **v0.0.1** — AI detection end-to-end
-Spec: [docs/v0.0.1-pre/README.md](docs/v0.0.1-pre/README.md)
+Next: **v0.0.2-pre** — spec TBD
 History: [docs/CHANGELOG.md](docs/CHANGELOG.md)
 
 ---

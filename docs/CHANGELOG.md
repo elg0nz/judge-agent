@@ -26,13 +26,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/) (v1.1.0) 
 - `POST /judge` API endpoint: accepts `{ content }`, returns `{ score, signals, explanation }`
 - `DetectionOutput` schema: humanness score 0–100 (100=human, 0=AI), top signals, explanation
 - AI detection prompt: structural, vocabulary, and coherence signal rubric
-- Judge UI: textarea input, score display with color coding, signals list, explanation
+- Judge UI: redesigned with Tailwind CSS v4 + Inter font; Coda-like SaaS aesthetic
+  - Fixed header with FeltSense logo
+  - Monospace textarea with live word count
+  - Score gauge with color-coded progress bar (rose/amber/emerald)
+  - Signal pills and analysis prose section
 - Eval fixtures: 5 AI samples + 5 human samples in `backend/tests/fixtures/`
 - Eval script `backend/tests/eval_detection.py`: validates AI < 30, human > 70
+- SQLite as default database for local development (no setup required)
+  - Auto-creates tables on startup when `ENVIRONMENT=development`
+  - PostgreSQL available via `pip install -e ".[postgres]"` + `DATABASE_URL` override
+- `GETTING_STARTED.md` and `backend/README.md` rewritten for junior developers
 
 ### Changed
 - Replaced broad `JudgeOutput` (origin, virality, distribution, explanation) with focused `DetectionOutput`
 - Simplified agent prompt to AI detection only (removed virality and distribution analysis)
+- `psycopg2-binary` moved to optional `[postgres]` extra; not required for local dev
+- Alembic: `render_as_batch=True` for SQLite ALTER TABLE compatibility
+
+### Fixed
+- Anthropic API key not passed to Agno `Claude()` model; Pydantic Settings does not inject into `os.environ`, so key must be passed explicitly via `api_key=settings.ANTHROPIC_API_KEY`
+- Tailwind CSS v4 setup: added `postcss.config.mjs` with `@tailwindcss/postcss`; migrated from `@tailwind` directives to `@import "tailwindcss"`
 
 ### Removed
 - `JudgeOutput`, `ViralityAnalysis`, `AudienceSegment`, `AudienceReaction`, `OriginPrediction` models (deferred to v0.0.2)
