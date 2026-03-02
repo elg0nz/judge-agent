@@ -37,6 +37,9 @@ dev = [
     "vulture>=2.10",
 ]
 
+[tool.setuptools.packages.find]
+include = ["app*"]
+
 [project.urls]
 Repository = "https://github.com/feltsense/judge-agent"
 

@@ -60,7 +60,6 @@ def create_judge_agent(
         model=model or Claude(id=DEFAULT_MODEL_ID),
         system_message=_load_prompt(content_type),
         output_schema=DetectionOutput,
-        structured_outputs=True,
         description="Evaluates content for AI vs. human origin.",
     )
 
