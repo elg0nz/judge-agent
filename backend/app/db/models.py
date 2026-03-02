@@ -53,7 +53,7 @@ class User(Base, TimestampedMixin):
 
 
 class JudgeRun(Base):
-    """Stored result of a judge invocation, keyed by md5(input_text + user_uuid)."""
+    """Stored result of a judge invocation. PK is md5(content+user_uuid) as a cache key."""
 
     __tablename__ = "judge_runs"
 

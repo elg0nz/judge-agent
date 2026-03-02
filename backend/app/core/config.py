@@ -14,6 +14,10 @@ class _TolerantEnvSource(EnvSettingsSource):
     arrays, turning '["a","b"]' into '[a,b]'. The default source calls
     json.loads() and crashes before any field_validator runs.
 
+    This is a known class of dotenv parsing issues:
+    - python-dotenv: https://github.com/theskumar/python-dotenv/issues/285
+    - uv uses dotenvy (Rust) which has similar quote-stripping behavior
+
     This override falls back to bracket-stripping + comma-split for list
     fields when json.loads fails.
     """

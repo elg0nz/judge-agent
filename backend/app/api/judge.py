@@ -17,6 +17,9 @@ from app.db.models import JudgeRun, User
 
 router = APIRouter(prefix="/judge", tags=["judge"])
 
+# Cap history to keep the response snappy — no pagination needed yet.
+_HISTORY_LIMIT = 50
+
 
 class JudgeRequest(BaseModel):
     content: str
@@ -31,6 +34,7 @@ class RunSummary(BaseModel):
 
 
 def _run_id(content: str, user_uuid: str) -> str:
+    """Cache key (not cryptographic) — dedup identical content from the same user."""
     return hashlib.md5((content + user_uuid).encode()).hexdigest()
 
 
@@ -83,7 +87,7 @@ def get_history(user_uuid: str, db: Session = Depends(get_db)) -> list[RunSummar
         db.query(JudgeRun)
         .filter_by(user_uuid=user_uuid)
         .order_by(JudgeRun.created_at.desc())
-        .limit(50)
+        .limit(_HISTORY_LIMIT)
         .all()
     )
     return [
