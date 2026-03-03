@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { ArrowRight, Loader2, Zap, ChevronDown, ChevronRight, LogOut, FileText, Video, ArrowLeft, Upload } from 'lucide-react';
-import { judgeContent, signup, getHistory, uploadFile } from './lib/api';
-import type { JudgeResponse, DistributionSegment, UserProfile, RunSummary, UploadResponse } from './lib/types';
+import { judgeContent, judgeVideo, signup, getHistory, uploadFile, getFrames, submitFeedback } from './lib/api';
+import type { JudgeResponse, DistributionSegment, UserProfile, RunSummary, UploadResponse, FrameInfo, FeedbackRequest } from './lib/types';
 import { ApiError } from './lib/types';
 import { cn } from './lib/utils';
 
@@ -50,6 +50,130 @@ function SectionLabel({ children }: { children: React.ReactNode }): React.ReactE
   return (
     <div className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-3">
       {children}
+    </div>
+  );
+}
+
+// ── Feedback row ──────────────────────────────────────────────────────────────
+
+function FeedbackRow({
+  judgeRequestId,
+  contentType,
+}: {
+  judgeRequestId: string;
+  contentType: 'text' | 'video';
+}): React.ReactElement {
+  const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState<'up' | 'down' | null>(null);
+
+  async function handleRating(rating: 'up' | 'down'): Promise<void> {
+    if (submitted || loading) return;
+    setLoading(rating);
+    const req: FeedbackRequest = {
+      judge_request_id: judgeRequestId,
+      rating,
+      content_type: contentType,
+    };
+    try {
+      await submitFeedback(req);
+    } catch {
+      // Non-fatal: feedback submission failure should not disrupt UX
+    } finally {
+      setLoading(null);
+      setSubmitted(true);
+    }
+  }
+
+  if (submitted) {
+    return (
+      <div className="px-6 py-4 border-t border-zinc-100 flex items-center gap-2 text-xs text-zinc-500">
+        Thanks &mdash; this helps us improve.
+      </div>
+    );
+  }
+
+  return (
+    <div className="px-6 py-4 border-t border-zinc-100 flex items-center gap-3">
+      <span className="text-xs text-zinc-500">Was this analysis accurate?</span>
+      <button
+        onClick={() => handleRating('up')}
+        disabled={submitted || loading !== null}
+        className="inline-flex items-center justify-center w-7 h-7 rounded-md border border-zinc-200 bg-white hover:bg-zinc-50 hover:border-zinc-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-sm"
+        aria-label="Thumbs up"
+      >
+        {loading === 'up' ? <Loader2 className="w-3.5 h-3.5 animate-spin text-zinc-400" /> : '👍'}
+      </button>
+      <button
+        onClick={() => handleRating('down')}
+        disabled={submitted || loading !== null}
+        className="inline-flex items-center justify-center w-7 h-7 rounded-md border border-zinc-200 bg-white hover:bg-zinc-50 hover:border-zinc-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-sm"
+        aria-label="Thumbs down"
+      >
+        {loading === 'down' ? <Loader2 className="w-3.5 h-3.5 animate-spin text-zinc-400" /> : '👎'}
+      </button>
+    </div>
+  );
+}
+
+// ── Frame report ──────────────────────────────────────────────────────────────
+
+const FRAME_TYPE_LABEL: Record<string, string> = {
+  scene: 'Scene',
+  uniform: 'Uniform',
+  keyframe: 'Keyframe',
+};
+
+function FrameReport({ uploadId }: { uploadId: string }): React.ReactElement | null {
+  const [frames, setFrames] = useState<FrameInfo[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    getFrames(uploadId)
+      .then((data) => {
+        if (!cancelled) setFrames(data.slice(0, 9));
+      })
+      .catch(() => {
+        // 404 or network error — render nothing
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [uploadId]);
+
+  if (loading) {
+    return (
+      <div className="mt-6 flex items-center gap-2 text-xs text-zinc-400 py-3">
+        <Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading frames&hellip;
+      </div>
+    );
+  }
+
+  if (frames.length === 0) return null;
+
+  return (
+    <div className="mt-6">
+      <div className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-3">
+        Frame samples
+      </div>
+      <div className="grid grid-cols-3 gap-2">
+        {frames.map((frame, i) => (
+          <div key={i} className="relative rounded-lg overflow-hidden border border-zinc-200 bg-zinc-100">
+            <img
+              src={frame.url}
+              alt={`Frame ${i + 1}`}
+              className="w-full aspect-video object-cover block"
+            />
+            <div className="absolute bottom-0 left-0 right-0 px-2 py-1 bg-zinc-900/60">
+              <span className="text-xs text-white font-medium">
+                {FRAME_TYPE_LABEL[frame.type] ?? frame.type}
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -122,7 +246,15 @@ function DistributionRow({ seg }: { seg: DistributionSegment }): React.ReactElem
   );
 }
 
-function ResultCard({ result }: { result: JudgeResponse }): React.ReactElement {
+function ResultCard({
+  result,
+  judgeRequestId,
+  contentType,
+}: {
+  result: JudgeResponse;
+  judgeRequestId: string;
+  contentType: 'text' | 'video';
+}): React.ReactElement {
   return (
     <div className="rounded-xl border border-zinc-200 bg-white shadow-sm overflow-hidden">
       <OriginSection origin={result.origin} />
@@ -131,10 +263,11 @@ function ResultCard({ result }: { result: JudgeResponse }): React.ReactElement {
         <SectionLabel>Distribution</SectionLabel>
         {result.distribution.map((seg, i) => <DistributionRow key={i} seg={seg} />)}
       </div>
-      <div className="p-6">
+      <div className="p-6 border-b border-zinc-100">
         <SectionLabel>Analysis</SectionLabel>
         <p className="text-sm text-zinc-600 leading-relaxed">{result.explanation}</p>
       </div>
+      <FeedbackRow judgeRequestId={judgeRequestId} contentType={contentType} />
     </div>
   );
 }
@@ -162,7 +295,7 @@ function HistoryRow({ run }: { run: RunSummary }): React.ReactElement {
       </button>
       {expanded && (
         <div className="border-t border-zinc-100 p-4 bg-zinc-50">
-          <ResultCard result={run.output} />
+          <ResultCard result={run.output} judgeRequestId={run.id} contentType="text" />
         </div>
       )}
     </div>
@@ -299,12 +432,14 @@ function ModeSelector({ onSelect }: { onSelect: (mode: 'text' | 'video') => void
 
 // ── Video upload ──────────────────────────────────────────────────────────────
 
-function VideoUpload({ onBack }: { onBack: () => void }): React.ReactElement {
+function VideoUpload({ onBack, user }: { onBack: () => void; user: UserProfile }): React.ReactElement {
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [subtitleFile, setSubtitleFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadResult, setUploadResult] = useState<UploadResponse | null>(null);
+  const [judging, setJudging] = useState(false);
+  const [judgeResult, setJudgeResult] = useState<JudgeResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const videoInputRef = useRef<HTMLInputElement>(null);
@@ -366,16 +501,31 @@ function VideoUpload({ onBack }: { onBack: () => void }): React.ReactElement {
     setUploading(true);
     setError(null);
     setUploadResult(null);
+    setJudgeResult(null);
     try {
-      const result = await uploadFile(videoFile, subtitleFile ?? undefined);
-      setUploadResult(result);
+      const uploadRes = await uploadFile(videoFile, subtitleFile ?? undefined);
+      setUploadResult(uploadRes);
+      // Proceed to judge the uploaded video
+      setUploading(false);
+      setJudging(true);
+      try {
+        const judgeRes = await judgeVideo(uploadRes.upload_id, user.uuid);
+        setJudgeResult(judgeRes);
+      } catch (judgeErr) {
+        if (judgeErr instanceof ApiError) {
+          setError(`Analysis failed — Error ${judgeErr.status}: ${judgeErr.message}`);
+        } else {
+          setError(judgeErr instanceof Error ? judgeErr.message : 'Analysis failed');
+        }
+      } finally {
+        setJudging(false);
+      }
     } catch (err) {
       if (err instanceof ApiError) {
         setError(`Error ${err.status}: ${err.message}`);
       } else {
         setError(err instanceof Error ? err.message : 'Upload failed');
       }
-    } finally {
       setUploading(false);
     }
   }
@@ -490,11 +640,13 @@ function VideoUpload({ onBack }: { onBack: () => void }): React.ReactElement {
       <div className="mt-4 flex justify-end">
         <button
           onClick={handleUpload}
-          disabled={uploading || !videoFile}
+          disabled={uploading || judging || !videoFile}
           className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-zinc-900 text-white text-sm font-medium hover:bg-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
           {uploading ? (
             <><Loader2 className="w-4 h-4 animate-spin" /> Uploading…</>
+          ) : judging ? (
+            <><Loader2 className="w-4 h-4 animate-spin" /> Analyzing…</>
           ) : (
             <>Upload <ArrowRight className="w-4 h-4" /></>
           )}
@@ -507,7 +659,7 @@ function VideoUpload({ onBack }: { onBack: () => void }): React.ReactElement {
         </div>
       )}
 
-      {uploadResult && (
+      {uploadResult && !judgeResult && !judging && (
         <div className="mt-4 px-4 py-3.5 rounded-lg bg-emerald-50 border border-emerald-200">
           <p className="text-xs font-semibold text-emerald-700 mb-1">Upload successful</p>
           <div className="flex items-center gap-2 text-xs text-emerald-600">
@@ -515,6 +667,19 @@ function VideoUpload({ onBack }: { onBack: () => void }): React.ReactElement {
             {uploadResult.has_subtitles && (
               <span className="text-emerald-500">subtitles included</span>
             )}
+          </div>
+        </div>
+      )}
+
+      {judgeResult && uploadResult && (
+        <div className="mt-8">
+          <FrameReport uploadId={uploadResult.upload_id} />
+          <div className="mt-6">
+            <ResultCard
+              result={judgeResult}
+              judgeRequestId={uploadResult.upload_id}
+              contentType="video"
+            />
           </div>
         </div>
       )}
@@ -540,6 +705,7 @@ function TextAnalysis({
 }): React.ReactElement {
   const [text, setText] = useState('');
   const [result, setResult] = useState<JudgeResponse | null>(null);
+  const [runId, setRunId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -550,9 +716,11 @@ function TextAnalysis({
     setLoading(true);
     setError(null);
     setResult(null);
+    setRunId(null);
     try {
       const response = await judgeContent(text, user.uuid);
       setResult(response);
+      setRunId(response.run_id ?? null);
     } catch (err) {
       if (err instanceof ApiError && err.status === 404) {
         // Stale user_uuid — force re-login
@@ -621,7 +789,15 @@ function TextAnalysis({
         </div>
       )}
 
-      {result && <div className="mt-8"><ResultCard result={result} /></div>}
+      {result && (
+        <div className="mt-8">
+          <ResultCard
+            result={result}
+            judgeRequestId={runId ?? user.uuid}
+            contentType="text"
+          />
+        </div>
+      )}
 
       <HistoryPanel runs={runs} loading={historyLoading} />
     </div>
@@ -723,7 +899,7 @@ export default function Home(): React.ReactElement {
             />
           )}
           {mode === 'video' && (
-            <VideoUpload onBack={() => setMode('select')} />
+            <VideoUpload onBack={() => setMode('select')} user={user} />
           )}
         </div>
       </main>

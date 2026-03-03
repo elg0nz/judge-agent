@@ -91,6 +91,7 @@ export interface JudgeResponse {
   virality: ViralityOutput;
   distribution: DistributionSegment[];
   explanation: string;
+  run_id?: string;
 }
 
 export interface UserProfile {
@@ -108,4 +109,21 @@ export interface RunSummary {
 export interface UploadResponse {
   upload_id: string;
   has_subtitles: boolean;
+}
+
+export interface FrameInfo {
+  filename: string;
+  type: string;
+  url: string;
+}
+
+export interface FeedbackRequest {
+  judge_request_id: string;
+  rating: 'up' | 'down';
+  content_type: 'text' | 'video';
+}
+
+export interface FeedbackResponse {
+  success: boolean;
+  message: string;
 }

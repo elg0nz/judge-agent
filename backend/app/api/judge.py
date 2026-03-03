@@ -54,7 +54,9 @@ async def judge_text(
         run_id = _run_id(request.content, user_uuid)
         existing = db.query(JudgeRun).filter_by(id=run_id).first()
         if existing:
-            return JudgeOutput.model_validate(existing.output)
+            cached = JudgeOutput.model_validate(existing.output)
+            cached.run_id = run_id
+            return cached
 
     try:
         result = await run_judge(content=request.content)
@@ -75,7 +77,11 @@ async def judge_text(
             db.rollback()
             existing = db.query(JudgeRun).filter_by(id=run_id).first()
             if existing:
-                return JudgeOutput.model_validate(existing.output)
+                cached = JudgeOutput.model_validate(existing.output)
+                cached.run_id = run_id
+                return cached
+
+        result.run_id = run_id
 
     return result
 

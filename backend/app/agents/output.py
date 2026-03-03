@@ -58,6 +58,10 @@ class JudgeOutput(BaseModel):
         description="2-4 audience segments"
     )
     explanation: str = Field(description="Traceable reasoning across all four dimensions")
+    run_id: str | None = Field(
+        default=None,
+        description="Opaque identifier for this judge run; used by the frontend to submit feedback."
+    )
 
 
 class ContentInput(BaseModel):

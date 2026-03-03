@@ -9,6 +9,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.api.auth import router as auth_router
+from app.api.feedback import router as feedback_router
+from app.api.frames import router as frames_router
 from app.api.judge import router as judge_router
 from app.api.upload import router as upload_router
 from app.core.config import settings
@@ -64,6 +66,8 @@ def create_app() -> FastAPI:
     app.include_router(judge_router)
     app.include_router(auth_router)
     app.include_router(upload_router)
+    app.include_router(feedback_router)
+    app.include_router(frames_router)
 
     # Add CORS middleware
     app.add_middleware(

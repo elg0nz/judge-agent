@@ -2,7 +2,7 @@
  * API client with fetch wrapper and error handling
  */
 
-import { ApiError, ApiResponse, ApiClientConfig, JudgeRequest, JudgeResponse, UserProfile, RunSummary, UploadResponse } from './types';
+import { ApiError, ApiResponse, ApiClientConfig, JudgeRequest, JudgeResponse, UserProfile, RunSummary, UploadResponse, FrameInfo, FeedbackRequest, FeedbackResponse } from './types';
 import { API_BASE_URL, API_TIMEOUT_MS, API_RETRY_COUNT, API_ENDPOINTS } from './constants';
 
 /**
@@ -147,6 +147,21 @@ export async function signup(username: string): Promise<UserProfile> {
 
 export async function getHistory(userUuid: string): Promise<RunSummary[]> {
   return apiClient.get<RunSummary[]>(`/judge/history?user_uuid=${encodeURIComponent(userUuid)}`);
+}
+
+export async function getFrames(uploadId: string): Promise<FrameInfo[]> {
+  return apiClient.get<FrameInfo[]>(`/frames/${encodeURIComponent(uploadId)}`);
+}
+
+export async function submitFeedback(request: FeedbackRequest): Promise<FeedbackResponse> {
+  return apiClient.post<FeedbackResponse>('/feedback', request);
+}
+
+export async function judgeVideo(uploadId: string, userUuid?: string): Promise<JudgeResponse> {
+  return apiClient.post<JudgeResponse>('/judge/video', {
+    upload_id: uploadId,
+    user_uuid: userUuid ?? null,
+  });
 }
 
 export async function uploadFile(videoFile: File, subtitleFile?: File): Promise<UploadResponse> {
