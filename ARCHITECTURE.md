@@ -1,5 +1,49 @@
 # Judge Agent — Architecture
 
+## High-Level Architecture
+
+```mermaid
+graph TB
+    subgraph Client["Client"]
+        Browser["Browser"]
+        NextJS["Next.js 15 · :3000"]
+    end
+
+    subgraph Backend["Backend  (FastAPI + uvicorn · :8000)"]
+        API["REST API\n/judge  /upload  /auth\n/frames  /feedback"]
+        DBOS["DBOS\nDurable Execution Engine"]
+        JudgeAgent["Judge Agent\nAgno · claude-sonnet-4-6\nOrigin · Virality · Distribution · Explanation"]
+        VideoPipeline["Video Pipeline\ntranscribe → extract frames → judge"]
+    end
+
+    subgraph Storage["Storage"]
+        AppDB[("App DB\nusers · judge_runs · feedback\nSQLite dev / PostgreSQL prod")]
+        DBOSdb[("DBOS System DB\nworkflow checkpoints")]
+        TmpFS[("./tmp/\nvideo uploads + frames")]
+    end
+
+    subgraph External["External Services"]
+        Anthropic["Anthropic API\nclaude-sonnet-4-6"]
+        ElevenLabs["ElevenLabs Scribe\nspeech-to-text"]
+        FFmpeg["ffmpeg\nlocal binary"]
+    end
+
+    Browser -->|interacts with| NextJS
+    NextJS -->|"HTTP / JSON  (NEXT_PUBLIC_API_URL)"| API
+    API --> AppDB
+    API --> TmpFS
+    API --> DBOS
+    DBOS --> DBOSdb
+    DBOS --> JudgeAgent
+    DBOS --> VideoPipeline
+    JudgeAgent -->|"structured LLM call"| Anthropic
+    VideoPipeline -->|"speech-to-text  (no subtitle)"| ElevenLabs
+    VideoPipeline -->|"scene · uniform · I-frame passes"| FFmpeg
+    VideoPipeline --> TmpFS
+```
+
+---
+
 ## Problem Statement
 
 Given a piece of content (text or video), produce four structured outputs:
