@@ -25,7 +25,7 @@ if TYPE_CHECKING:
 _PROMPTS_DIR = Path(__file__).parent / "prompts"
 
 # Default model — swappable via Agno abstraction layer
-DEFAULT_MODEL_ID = "claude-sonnet-4-20250514"
+DEFAULT_MODEL_ID = "claude-sonnet-4-6"
 
 
 def _load_prompt(phase: ContentType) -> str:
