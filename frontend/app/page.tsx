@@ -6,6 +6,7 @@ import { judgeContent, judgeVideo, signup, getHistory, uploadFile, getFrames, su
 import type { JudgeResponse, DistributionSegment, UserProfile, RunSummary, UploadResponse, FrameInfo, FeedbackRequest } from './lib/types';
 import { ApiError } from './lib/types';
 import { cn } from './lib/utils';
+import { API_BASE_URL } from './lib/constants';
 
 const STORAGE_KEY = 'feltsense_user';
 
@@ -162,7 +163,7 @@ function FrameReport({ uploadId }: { uploadId: string }): React.ReactElement | n
         {frames.map((frame, i) => (
           <div key={i} className="relative rounded-lg overflow-hidden border border-zinc-200 bg-zinc-100">
             <img
-              src={frame.url}
+              src={`${API_BASE_URL}${frame.url}`}
               alt={`Frame ${i + 1}`}
               className="w-full aspect-video object-cover block"
             />
