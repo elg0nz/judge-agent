@@ -4,7 +4,7 @@ import uuid as uuid_module
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import JSON, DateTime, ForeignKey, String, func
+from sqlalchemy import JSON, CheckConstraint, DateTime, ForeignKey, String, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -74,6 +74,10 @@ class Feedback(Base):
     """User feedback on judge analysis results."""
 
     __tablename__ = "feedback"
+    __table_args__ = (
+        CheckConstraint("rating IN ('up', 'down')", name="ck_feedback_rating"),
+        CheckConstraint("content_type IN ('text', 'video')", name="ck_feedback_content_type"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     # Flexible request identifier: md5(content+user_uuid) for text, upload_id for video.

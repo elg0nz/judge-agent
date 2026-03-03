@@ -11,6 +11,7 @@ from app.core.config import settings
 
 _CHUNK_SIZE = 1024 * 1024  # 1 MiB
 MAX_UPLOAD_BYTES = 500 * 1024 * 1024  # 500 MiB
+MAX_SUBTITLE_BYTES = 10 * 1024 * 1024  # 10 MiB
 
 _ALLOWED_VIDEO_MIME_TYPES = {"video/mp4", "video/quicktime", "video/webm"}
 
@@ -65,8 +66,13 @@ async def upload_files(
         if sub_ext not in {".srt", ".vtt", ".txt"}:
             raise HTTPException(400, f"Unsupported subtitle format: {sub_ext}. Use .srt, .vtt, or .txt")
         sub_path = upload_dir / f"subtitles{sub_ext}"
+        sub_bytes_written = 0
         async with aiofiles.open(sub_path, "wb") as f:
             while chunk := await subtitle_file.read(_CHUNK_SIZE):
+                sub_bytes_written += len(chunk)
+                if sub_bytes_written > MAX_SUBTITLE_BYTES:
+                    limit_mib = MAX_SUBTITLE_BYTES // (1024 * 1024)
+                    raise HTTPException(413, f"Subtitle exceeds {limit_mib} MiB limit")
                 await f.write(chunk)
         has_subtitles = True
 

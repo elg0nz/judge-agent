@@ -1,6 +1,5 @@
 """Video analysis pipeline: transcription + frame extraction + judge."""
 
-import glob as glob_module
 import logging
 import re
 from pathlib import Path
@@ -32,9 +31,9 @@ def transcribe_or_parse(upload_id: str) -> str:
 
     # Check for existing subtitle file
     for ext in (".srt", ".vtt", ".txt"):
-        sub_path = list(upload_dir.glob(f"subtitles{ext}"))
+        sub_path = next(upload_dir.glob(f"subtitles{ext}"), None)
         if sub_path:
-            text = _parse_subtitles(sub_path[0])
+            text = _parse_subtitles(sub_path)
             transcript_path.write_text(text, encoding="utf-8")
             return text
 
@@ -106,7 +105,7 @@ def extract_frames(upload_id: str) -> list[str]:
         logger.warning("i-frame extraction skipped: %s", e)
 
     # Return list of all extracted frame paths
-    frame_files = sorted(glob_module.glob(f"{frames_str}/*.jpg"))
+    frame_files = sorted(str(p) for p in frames_dir.glob("*.jpg"))
     return frame_files
 
 

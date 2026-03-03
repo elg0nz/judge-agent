@@ -3,7 +3,7 @@
 Single Agno agent, single LLM call per content item. Produces structured JSON
 with four dimensions. DBOS wraps the Claude call for durable retry on failure.
 
-See docs/v0.0.2-pre/README.md
+See docs/v0.0.2/README.md
 """
 
 from __future__ import annotations
