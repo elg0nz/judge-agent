@@ -4,6 +4,7 @@
 
 export const APP_NAME = 'Judge Agent';
 export const APP_VERSION = '0.0.1';
+export const APP_ATTRIBUTION = 'A coding assignment project by Glo Maldonado (sanscourier.ai).';
 export const CURRENT_YEAR = new Date().getFullYear();
 
 /**

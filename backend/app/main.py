@@ -54,8 +54,11 @@ def create_app() -> FastAPI:
         FastAPI: Configured application instance.
     """
     app = FastAPI(
-        title="Judge Agent API",
-        description="Agentic system to detect non-human created content",
+        title="Judge Agent API — Coding Assignment by Glo Maldonado (sanscourier.ai)",
+        description=(
+            "Agentic system to detect non-human created content. "
+            "Created by Glo Maldonado (sanscourier.ai) as a coding assignment project."
+        ),
         version="0.0.4",
         docs_url="/docs",
         openapi_url="/openapi.json",
@@ -87,9 +90,10 @@ def create_app() -> FastAPI:
             Dictionary with API information.
         """
         return {
-            "name": "Judge Agent API",
+            "name": "Judge Agent API — by Glo Maldonado (sanscourier.ai)",
             "version": "0.0.4",
             "environment": settings.ENVIRONMENT,
+            "project_attribution": "Coding assignment project by Glo Maldonado (sanscourier.ai)",
             "docs_url": "/docs",
             "openapi_url": "/openapi.json",
         }

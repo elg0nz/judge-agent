@@ -45,6 +45,11 @@
     "source": "synthetic"
   },
   {
+    "text": "I’ve been thinking a lot about how quickly AI tools went from “neat demo” to “baseline expectation.” It feels like just yesterday we were debating whether generative models were practical, and now they’re quietly embedded in everything from slide decks to customer support flows.  What’s strange isn’t the speed — tech always moves fast — it’s how normalized it feels. There wasn’t a dramatic moment where everyone agreed. It just sort of… happened. One workflow at a time. One small automation that saved 15 minutes.  I’m not sure whether that’s exciting or unsettling. Probably both. The upside is obvious: leverage, accessibility, speed. The harder question is what we stop practicing because the machine does it “well enough.” I don’t have a strong thesis yet. I just notice the shift.",
+    "label": "ai",
+    "source": "synthetic"
+  },
+  {
     "text": "Organizations seeking to harness the power of artificial intelligence must adopt a comprehensive lifecycle approach that spans data acquisition, model development, deployment, and continuous monitoring. It is imperative to ensure that ethical considerations remain central to these initiatives.",
     "label": "ai",
     "source": "synthetic"

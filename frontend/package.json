@@ -1,7 +1,7 @@
 {
   "name": "judge-agent-frontend",
   "version": "0.0.1",
-  "description": "Frontend for the Feltsense judge-agent judicial reasoning platform",
+  "description": "Frontend for Judge Agent, a coding assignment project by Glo Maldonado (sanscourier.ai)",
   "private": true,
   "type": "module",
   "scripts": {

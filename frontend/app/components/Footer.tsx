@@ -1,4 +1,4 @@
-import { CURRENT_YEAR } from '../lib/constants';
+import { APP_ATTRIBUTION, CURRENT_YEAR } from '../lib/constants';
 
 export default function Footer(): React.ReactElement {
   return (
@@ -8,7 +8,7 @@ export default function Footer(): React.ReactElement {
           <div>
             <h4 className="text-lg font-semibold mb-4">Judge Agent</h4>
             <p className="text-gray-400">
-              A judicial reasoning and decision-making platform for the Feltsense ecosystem.
+              {APP_ATTRIBUTION}
             </p>
           </div>
 
@@ -31,7 +31,10 @@ export default function Footer(): React.ReactElement {
         </div>
 
         <div className="border-t border-gray-700 pt-8 text-center text-gray-400">
-          <p>&copy; {CURRENT_YEAR} Judge Agent. All rights reserved.</p>
+          <p>
+            &copy; {CURRENT_YEAR} Judge Agent. Built by Glo Maldonado (sanscourier.ai). made
+            with love in Foggy, Outer Sunset, San Francisco, California).
+          </p>
         </div>
       </div>
     </footer>

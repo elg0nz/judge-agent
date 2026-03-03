@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { ArrowRight, Loader2, Zap, ChevronDown, ChevronRight, LogOut, FileText, Video, ArrowLeft, Upload } from 'lucide-react';
+import { ArrowRight, Loader2, ChevronDown, ChevronRight, LogOut, FileText, Video, ArrowLeft, Upload } from 'lucide-react';
 import { judgeContent, judgeVideo, signup, getHistory, uploadFile, getFrames, submitFeedback } from './lib/api';
 import type { JudgeResponse, DistributionSegment, UserProfile, RunSummary, UploadResponse, FrameInfo, FeedbackRequest } from './lib/types';
 import { ApiError } from './lib/types';
@@ -353,13 +353,25 @@ function LoginScreen({ onLogin }: { onLogin: (user: UserProfile) => void }): Rea
     <div className="min-h-screen bg-zinc-50 flex items-center justify-center px-6">
       <div className="w-full max-w-sm">
         <div className="flex items-center gap-2 mb-8">
-          <div className="w-6 h-6 rounded-md bg-zinc-900 flex items-center justify-center">
-            <Zap className="w-3.5 h-3.5 text-white" strokeWidth={2.5} />
+          <div className="w-6 h-6 rounded-md bg-zinc-900 flex items-center justify-center text-sm leading-none">
+            <span role="img" aria-label="sparkles logo">✨</span>
           </div>
-          <span className="text-sm font-semibold text-zinc-900 tracking-tight">FeltSense</span>
+          <span className="text-sm font-semibold text-zinc-900 tracking-tight">GloSense</span>
         </div>
         <h1 className="text-2xl font-bold text-zinc-900 tracking-tight mb-1">Welcome</h1>
         <p className="text-sm text-zinc-500 mb-6">Enter a username to get started. No password needed.</p>
+        <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 leading-relaxed">
+          Right now you&apos;re in dev mode.
+          <br />
+          <br />
+          Auth is basically vibes — insecure and not wired up.
+          <br />
+          <br />
+          Yes, that&apos;s intentional. This is a take-home, so I optimized for signal over ceremony. Ship the core. Skip the theater.
+          <br />
+          <br />
+          If we were pushing to prod, we&apos;d lock it down properly.
+        </div>
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
           <input
             autoFocus
@@ -808,10 +820,10 @@ function Header({ user, onSignOut }: { user: UserProfile | null; onSignOut: () =
     <header className="fixed top-0 left-0 right-0 z-10 bg-white/80 backdrop-blur-md border-b border-zinc-100">
       <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-md bg-zinc-900 flex items-center justify-center">
-            <Zap className="w-3.5 h-3.5 text-white" strokeWidth={2.5} />
+          <div className="w-6 h-6 rounded-md bg-zinc-900 flex items-center justify-center text-sm leading-none">
+            <span role="img" aria-label="sparkles logo">✨</span>
           </div>
-          <span className="text-sm font-semibold text-zinc-900 tracking-tight">FeltSense</span>
+          <span className="text-sm font-semibold text-zinc-900 tracking-tight">GloSense</span>
         </div>
         {user && (
           <button

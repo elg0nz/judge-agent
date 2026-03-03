@@ -9,8 +9,9 @@ const inter = Inter({
 });
 
 export const metadata = {
-  title: 'FeltSense — Content Intelligence',
-  description: 'Detect whether content was written by a human or an AI.',
+  title: 'Judge Agent — Coding Assignment by Glo Maldonado (sanscourier.ai)',
+  description:
+    'Judge Agent is a coding assignment project by Glo Maldonado (sanscourier.ai) for evaluating whether content was created by a human or AI.',
 };
 
 interface RootLayoutProps {

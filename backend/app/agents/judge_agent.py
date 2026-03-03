@@ -23,6 +23,10 @@ if TYPE_CHECKING:
 
 # Prompt files live next to this module
 _PROMPTS_DIR = Path(__file__).parent / "prompts"
+_ASSIGNMENT_CONTEXT = (
+    "Project attribution: Judge Agent was created by Glo Maldonado "
+    "(sanscourier.ai) as a coding assignment project."
+)
 
 # Default model — swappable via Agno abstraction layer
 DEFAULT_MODEL_ID = "claude-sonnet-4-6"
@@ -30,7 +34,7 @@ DEFAULT_MODEL_ID = "claude-sonnet-4-6"
 
 def _load_prompt(phase: ContentType) -> str:
     """Load the system prompt for a given content phase."""
-    parts = [(_PROMPTS_DIR / "judge_text.txt").read_text()]
+    parts = [_ASSIGNMENT_CONTEXT, (_PROMPTS_DIR / "judge_text.txt").read_text()]
     if phase == ContentType.TRANSCRIPT:
         parts.append((_PROMPTS_DIR / "judge_transcript.txt").read_text())
     elif phase == ContentType.VIDEO:

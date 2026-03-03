@@ -5,10 +5,10 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "judge-agent-backend"
 version = "0.0.4"
-description = "Agentic system to detect non-human created content"
+description = "Judge Agent backend — coding assignment project by Glo Maldonado (sanscourier.ai)"
 requires-python = ">=3.11"
 authors = [
-    {name = "Feltsense Team"}
+    {name = "Glo Maldonado", email = "glo@sanscourier.ai"}
 ]
 
 dependencies = [
