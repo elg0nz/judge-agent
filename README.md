@@ -1,6 +1,16 @@
 # GloSense an Agent Judge.
 ## Coding Assignment by Glo Maldonado (sanscourier.ai)
 
+
+<div>
+    <a href="https://www.loom.com/share/bb4dee0974ec491c8b6d327a4d6e079e">
+      <p>Introducing Glossense: AI Content Detection System 🚀 - Watch Video</p>
+    </a>
+    <a href="https://www.loom.com/share/bb4dee0974ec491c8b6d327a4d6e079e">
+      <img style="max-width:300px;" src="https://cdn.loom.com/sessions/thumbnails/bb4dee0974ec491c8b6d327a4d6e079e-fdaab318cd34ed07-full-play.gif#t=0.1">
+    </a>
+  </div>
+
 Given a piece of content (text or video), my system makes a multi-dimensional call to determine the quality of the content:
 	•	Origin — AI vs. human, with confidence + concrete signals (Human written is more likely to be human-engaging and human-liked)
 	•	Virality — 0–100, with explicit drivers (Useful to determine if the content works)
@@ -64,6 +74,10 @@ Full walkthrough with expected output and troubleshooting: **[GETTING_STARTED.md
 Beyond that:
 - **Internal Streaming.** I would have the agent emit progress events over WebSocket to update the frontend in real-time, but that's hard to implement correctly given the time constraint.
 - **Unit tests per module.** The eval harness (`tests/eval_detection.py`) tests end-to-end accuracy. We should break it down by dimensions (origin, virality, distribution, explanation) and add unit tests & eval harnesses for each module.
-- **Docker Compose.** Right now you run two processes manually. A single `docker compose up` might be sufficient. I might tackle this if I have time before the deadline.
+- **~~Docker Compose.~~** ~~Right now you run two processes manually. A single `docker compose up` might be sufficient. I might tackle this if I have time before the deadline.~~ Implemented not fully tested.
 
 Full API reference, project structure, and tech stack: **[IMPLEMENTATION_NOTES.md](IMPLEMENTATION_NOTES.md)**
+
+---
+
+> **Note:** For full setup steps, expected output, Docker Compose usage, and troubleshooting, see **[GETTING_STARTED.md](GETTING_STARTED.md)**.

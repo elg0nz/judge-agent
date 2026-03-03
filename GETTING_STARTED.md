@@ -205,3 +205,7 @@ SQLite is fine for local development. If you need PostgreSQL:
    createdb judge_agent
    alembic upgrade head
    ```
+
+---
+
+> **Note:** This is the detailed runbook. For a quick project overview and architecture context, see **[README.md](README.md)** and **[ARCHITECTURE.md](ARCHITECTURE.md)**.
