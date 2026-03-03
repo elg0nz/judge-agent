@@ -1,349 +1,285 @@
-# Judge Agent Backend
+# Judge Agent — Backend
 
-Agentic system to detect non-human created content. Built with FastAPI, DBOS, and Agno.
+Python/FastAPI backend for judge-agent. Accepts text or video, runs it through the AI detection pipeline, and returns origin prediction, virality score, audience distribution, and explanation.
 
-## Overview
-
-The backend provides REST API endpoints for content analysis powered by the Judge Agent — an AI detection system that evaluates whether content was written by a human or AI, scores its virality potential, and predicts audience distribution.
+---
 
 ## Prerequisites
 
-- Python 3.11+
-- pip or uv for package management
+| Tool | Version |
+|------|---------|
+| Python | 3.11+ |
+| pip | bundled with Python |
 
-> **Database:** SQLite is the default for local development — no database setup required. For PostgreSQL, see [Database Setup](#3-database-setup) below.
+Check:
+```bash
+python --version
+# Python 3.11.x or higher
+```
+
+SQLite is the default database — it is built into Python. No database server to install.
+
+---
 
 ## Setup
 
-### 1. Environment Configuration
-
-Copy the environment template and update with your settings:
+### 1. Create your .env file
 
 ```bash
+cd backend
 cp .env.example .env
 ```
 
-Edit `.env` to configure:
-- `ANTHROPIC_API_KEY` — Required. Powers the AI judge agent.
-- `ELEVENLABS_API_KEY` — Required for video mode (speech-to-text transcription via ElevenLabs Scribe). Leave blank if only using text mode.
-- `DATABASE_URL` — SQLite by default, PostgreSQL optional
-- `CORS_ORIGINS` — Frontend URL(s)
-- `LOG_LEVEL` — Logging verbosity
+Open `.env` and set at minimum:
 
-### 2. Install Dependencies
+```
+ANTHROPIC_API_KEY=sk-ant-...your-key-here...
+```
+
+Everything else has a working default for local development. Leave `DATABASE_URL` as-is for SQLite.
+
+Full list of variables:
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `ANTHROPIC_API_KEY` | Yes | (empty) | Powers the AI judge agent. Get one at [console.anthropic.com](https://console.anthropic.com/). |
+| `ELEVENLABS_API_KEY` | Video mode only | (empty) | Transcribes video audio via ElevenLabs Scribe. Leave blank if you only use text mode. |
+| `DATABASE_URL` | No | `sqlite:///./judge_agent.db` | SQLite for local dev. Switch to `postgresql://user:pass@host:5432/dbname` for production. |
+| `DBOS_SYSTEM_DATABASE_URL` | No | `sqlite:///dbos_system.db` | Internal database for DBOS (the durable execution layer). Default SQLite is fine locally. |
+| `ENVIRONMENT` | No | `development` | Controls auto-table-creation and debug behavior. Values: `development`, `testing`, `production`. |
+| `CORS_ORIGINS` | No | `["http://localhost:3000","http://localhost:8000"]` | Comma-separated list of allowed frontend origins. |
+| `SECRET_KEY` | No | (dev default) | Change this in production. The app will refuse to start in production with the default value. |
+| `LOG_LEVEL` | No | `INFO` | Logging verbosity. |
+
+### 2. Install dependencies
 
 ```bash
-# Core dependencies only
-pip install -e .
-
-# With development tools (mypy, ruff, pytest, etc.)
 pip install -e ".[dev]"
 ```
 
-### 3. Database Setup
+`-e` means "editable install" — edits to source files take effect immediately without reinstalling. `[dev]` adds testing and linting tools.
 
-**Local dev (SQLite — default):** No setup needed. Tables are auto-created on first startup when `ENVIRONMENT=development`.
-
-**PostgreSQL (production):**
-
-1. Install the PostgreSQL driver:
-   ```bash
-   pip install -e ".[postgres]"
-   ```
-2. Set `DATABASE_URL` in `.env`:
-   ```
-   DATABASE_URL=postgresql://user:password@localhost:5432/judge_agent
-   ```
-3. Run migrations:
-   ```bash
-   alembic upgrade head
-   ```
-
-## Running the Server
-
-### Development Mode
-
-Start the development server with auto-reload:
-
-```bash
-./scripts/dev.sh
+Expected output ends with:
+```
+Successfully installed judge-agent-backend-0.0.4 ...
 ```
 
-Server runs at `http://localhost:8000`
-
-- API docs: `http://localhost:8000/docs` (Swagger UI)
-- ReDoc: `http://localhost:8000/redoc`
-
-### Production Mode
-
-Set `ENVIRONMENT=production` in `.env` and run with a production ASGI server:
+### 3. Start the server
 
 ```bash
-gunicorn app.main:app --workers 4 --worker-class uvicorn.workers.UvicornWorker
+python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-## API Endpoints
+Or use the shortcut script:
+```bash
+bash scripts/dev.sh
+```
 
-### Health Check
+Both do the same thing. Expected output:
+```
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [...]
+INFO:     Application startup complete.
+```
+
+The first startup creates `judge_agent.db` (SQLite) and `dbos_system.db` in `backend/`. These are auto-created on every fresh clone — no migration step needed for SQLite.
+
+### 4. Verify
 
 ```bash
 curl http://localhost:8000/health
 ```
 
-Response:
+Expected:
 ```json
-{
-  "status": "healthy",
-  "environment": "development"
-}
+{"status":"healthy","environment":"development"}
 ```
 
-### API Metadata
+Interactive API docs at [http://localhost:8000/docs](http://localhost:8000/docs).
+
+---
+
+## Endpoints
+
+### Analyze text
 
 ```bash
-curl http://localhost:8000/
+curl -X POST http://localhost:8000/judge \
+  -H "Content-Type: application/json" \
+  -d '{"content": "In the rapidly evolving landscape of AI, it is crucial to leverage nuanced approaches."}'
 ```
 
 Response:
 ```json
 {
-  "name": "Judge Agent API",
-  "version": "0.0.1",
-  "environment": "development",
-  "docs_url": "/docs",
-  "openapi_url": "/openapi.json"
+  "origin": {
+    "prediction": "AI-generated",
+    "confidence": 0.92,
+    "signals": ["'landscape', 'leverage', 'nuanced' vocabulary cluster"]
+  },
+  "virality": { "score": 12, "drivers": ["no emotional hook", "generic framing"] },
+  "distribution": [
+    { "segment": "LinkedIn professionals", "platforms": ["linkedin"], "reaction": "ignore" }
+  ],
+  "explanation": "The text displays classic AI-generated patterns..."
 }
 ```
 
-## Project Structure
+### Create / retrieve user
+
+```bash
+curl -X POST http://localhost:8000/auth/signup \
+  -H "Content-Type: application/json" \
+  -d '{"username": "alice"}'
+```
+
+Response:
+```json
+{"username": "alice", "uuid": "550e8400-e29b-41d4-a716-446655440000"}
+```
+
+Calling this again with the same username returns the existing user — it is idempotent.
+
+### Run history
+
+```bash
+curl "http://localhost:8000/judge/history?user_uuid=550e8400-e29b-41d4-a716-446655440000"
+```
+
+Returns the last 50 runs for that user, newest first.
+
+### Health check
+
+```bash
+curl http://localhost:8000/health
+# {"status":"healthy","environment":"development"}
+```
+
+---
+
+## Project structure
 
 ```
 backend/
 ├── app/
-│   ├── __init__.py              # App factory
-│   ├── main.py                  # FastAPI setup and routes
+│   ├── main.py                  — FastAPI app setup, middleware, lifespan
 │   ├── core/
-│   │   ├── __init__.py
-│   │   └── config.py            # Pydantic Settings
+│   │   └── config.py            — Pydantic Settings (reads from .env)
 │   ├── db/
-│   │   ├── __init__.py
-│   │   ├── models.py            # SQLAlchemy ORM models
-│   │   └── dbos.py              # Database initialization and pooling
+│   │   ├── models.py            — SQLAlchemy ORM models (User, JudgeRun, Feedback)
+│   │   └── dbos.py              — DB session management
 │   ├── api/
-│   │   └── __init__.py          # Route modules go here
-│   ├── models/
-│   │   └── __init__.py          # Pydantic schemas go here
+│   │   ├── judge.py             — POST /judge, GET /judge/history, POST /judge/video
+│   │   ├── auth.py              — POST /auth/signup
+│   │   ├── upload.py            — POST /upload
+│   │   ├── feedback.py          — POST /feedback
+│   │   └── frames.py            — GET /frames/{upload_id}
 │   └── agents/
-│       ├── __init__.py
-│       ├── base.py              # Agent registry and base class
-│       └── judicial_reasoner.py # Example agent skeleton
+│       ├── judge_agent.py       — Main judge agent (Agno + Claude, DBOS retry)
+│       ├── output.py            — JudgeOutput Pydantic schema
+│       ├── video_pipeline.py    — Video transcription + analysis pipeline
+│       └── prompts/             — System prompt text files
 ├── tests/
-│   └── __init__.py
-├── alembic/
-│   ├── env.py                   # Alembic configuration
-│   ├── script.py.mako           # Migration template
-│   └── versions/                # Migration scripts
+│   ├── eval_detection.py        — Accuracy eval against labeled samples
+│   └── fixtures/                — ai_samples.json, human_samples.json
 ├── scripts/
-│   ├── dev.sh                   # Development server
-│   └── presubmit.sh             # Quality gates
-├── .env.example                 # Environment template
-├── alembic.ini                  # Alembic config
-├── pyproject.toml               # Dependencies and tool config
-└── README.md                    # This file
+│   ├── dev.sh                   — Start the dev server
+│   └── presubmit.sh             — Run all quality gates
+├── alembic/                     — Database migrations (for PostgreSQL)
+├── .env.example                 — Environment template
+└── pyproject.toml               — Dependencies, tool config
 ```
 
-## Development Workflow
+---
 
-### Quality Gates
+## Running the eval
 
-Run presubmit checks before committing:
+The eval tests the judge against labeled samples and verifies accuracy:
 
 ```bash
-./scripts/presubmit.sh
+cd backend
+python tests/eval_detection.py
 ```
 
-This runs:
-- **mypy** — Type checking (strict mode)
-- **ruff** — Linting and import sorting
-- **bandit** — Security checks
-- **vulture** — Dead code detection
-- **pytest** — Unit tests
+All samples should pass. If they fail, check your `ANTHROPIC_API_KEY`.
 
-### Type Checking
+---
 
-Type hints are required throughout. Verify with mypy:
+## Development
+
+### Quality gates
+
+Run before committing:
 
 ```bash
-mypy app --strict
+cd backend
+bash scripts/presubmit.sh
 ```
 
-### Testing
+Runs: mypy (type checking), ruff (linting), bandit (security), vulture (dead code), pytest.
 
-Run tests with pytest:
+Individual commands:
 
 ```bash
-pytest tests -v
+mypy app --strict               # type check
+ruff check app                  # lint
+pytest tests -v                 # unit tests
+pytest tests --cov=app          # tests with coverage
 ```
 
-Run with coverage:
+---
 
-```bash
-pytest tests --cov=app --cov-report=html
-```
+## PostgreSQL (production)
 
-## Architecture
+SQLite is the default and works for local dev. To use PostgreSQL:
 
-### Database Layer (`app/db/`)
+1. Install the driver:
+   ```bash
+   pip install -e ".[postgres]"
+   ```
 
-- **models.py** — SQLAlchemy ORM models with `Base` declarative class and `TimestampedMixin`
-- **dbos.py** — Connection pooling, session management, and DBOS initialization
+2. Update `backend/.env`:
+   ```
+   DATABASE_URL=postgresql://user:password@localhost:5432/judge_agent
+   ```
 
-Example query:
+3. Create the database and apply migrations:
+   ```bash
+   createdb judge_agent
+   alembic upgrade head
+   ```
 
-```python
-from fastapi import Depends
-from app.db.dbos import get_db
-from app.db.models import Case
-from sqlalchemy.orm import Session
-
-@app.get("/cases")
-def list_cases(db: Session = Depends(get_db)):
-    return db.query(Case).all()
-```
-
-### Agent System (`app/agents/`)
-
-- **base.py** — `Agent` abstract base class and `AgentRegistry`
-- **judicial_reasoner.py** — Example judicial reasoning agent
-
-Extend the `Agent` class to create new reasoning agents:
-
-```python
-from app.agents.base import Agent, agent_registry
-
-class MyAgent(Agent):
-    async def reason(self, context):
-        # Reasoning logic here
-        return result
-
-    async def validate_input(self, context):
-        # Input validation
-        return is_valid
-
-# Register agent
-agent_registry.register(MyAgent())
-```
-
-### Configuration (`app/core/config.py`)
-
-Pydantic Settings loads configuration from `.env`:
-
-```python
-from app.core.config import settings
-
-# Access settings
-db_url = settings.DATABASE_URL
-cors_origins = settings.CORS_ORIGINS
-is_debug = settings.DEBUG
-```
-
-## Database Migrations (Alembic)
-
-### Creating Migrations
-
-Auto-generate migration from model changes:
-
-```bash
-alembic revision --autogenerate -m "Add new column"
-```
-
-Manually create migration:
-
-```bash
-alembic revision -m "Custom migration"
-```
-
-Edit the generated file in `alembic/versions/` and update `upgrade()` and `downgrade()` functions.
-
-### Running Migrations
-
-Apply pending migrations:
-
-```bash
-alembic upgrade head
-```
-
-Rollback to specific revision:
-
-```bash
-alembic downgrade <revision>
-```
-
-View migration history:
-
-```bash
-alembic history
-```
-
-## DBOS Integration (Future)
-
-DBOS (Database OS) primitives for transactional workflows will be integrated in upcoming releases. The database layer is structured to support:
-
-- Durable workflows with automatic recovery
-- Transactional operations with at-least-once semantics
-- Connection pooling and resource management
-
-See [DBOS documentation](https://dbos.dev/) for more details.
-
-## Agno Integration (Future)
-
-Agno agents for AI-driven reasoning will be integrated in future releases. The agent registry and base classes are ready for:
-
-- Flexible agent definitions
-- Agent chaining and composition
-- Integration with reasoning workflows
+---
 
 ## Troubleshooting
 
-### Database Connection Errors
+**`ModuleNotFoundError: No module named 'fastapi'` or similar**
 
-**SQLite (default):** The file `judge_agent.db` is created automatically in the `backend/` directory. No action needed.
+Install failed or you're in the wrong directory.
+```bash
+cd backend
+pip install -e ".[dev]"
+```
 
-**PostgreSQL:**
-1. Verify PostgreSQL is running
-2. Check `DATABASE_URL` in `.env`
-3. Ensure database exists: `createdb judge_agent`
-4. Ensure driver is installed: `pip install -e ".[postgres]"`
+**`AuthenticationError: Error code: 401` from Anthropic**
 
-### Import Errors
+Your `ANTHROPIC_API_KEY` in `backend/.env` is missing or wrong. It must start with `sk-ant-`.
 
-1. Install dependencies: `pip install -e ".[dev]"`
-2. Verify Python path includes `backend/` directory
-3. Run from backend root: `cd backend && python -m pytest`
+**`Address already in use` on port 8000**
 
-### Type Checking Failures
+Something else is on that port. Kill it:
+```bash
+lsof -ti:8000 | xargs kill
+```
 
-1. Review mypy errors: `mypy app --strict --show-error-codes`
-2. Add type annotations to offending functions
-3. Use `# type: ignore` only as last resort with explanation
+**`[Errno 2] No such file or directory: '.env'`**
 
-## Contributing
+You skipped the copy step:
+```bash
+cd backend && cp .env.example .env
+```
+Then add your API key.
 
-1. Create feature branch from `main`
-2. Make changes following PEP 8 and FastAPI conventions
-3. Run `./scripts/presubmit.sh` — all checks must pass
-4. Commit with descriptive messages
-5. Submit pull request with test coverage
+**Server starts but `POST /judge` returns 500**
 
-## Resources
-
-- [FastAPI Documentation](https://fastapi.tiangolo.com/)
-- [SQLAlchemy 2.0](https://docs.sqlalchemy.org/)
-- [Alembic Migrations](https://alembic.sqlalchemy.org/)
-- [Pydantic Settings](https://docs.pydantic.dev/latest/concepts/pydantic_settings/)
-- [DBOS](https://dbos.dev/)
-- [Agno](https://agno.ai/)
-
-## License
-
-Proprietary — Feltsense Platform
+Almost always a bad or missing `ANTHROPIC_API_KEY`. Check the server logs in the terminal where uvicorn is running.

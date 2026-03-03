@@ -1,346 +1,220 @@
-# Judge Agent - Frontend
+# Judge Agent — Frontend
 
-A production-ready React/Next.js frontend for the Feltsense judicial reasoning agent platform.
+Next.js 15 frontend for judge-agent. Provides the judge UI: login, text analysis, video upload, run history, and thumbs-up/down feedback.
 
-## Features
+---
 
-- **Next.js App Router** — Modern React framework with file-based routing
-- **TypeScript Strict Mode** — Full type safety with no `any` types
-- **Component Architecture** — One component per file, fully typed with React best practices
-- **Custom Hooks** — Reusable hooks for async data, forms, local storage, and more
-- **API Client** — Typed fetch wrapper with retry logic and error handling
-- **ESLint & Prettier** — Automated code quality and formatting
-- **Error Handling** — Global error boundary and 404 page
-- **Tailwind CSS** — Utility-first CSS for rapid UI development
+## Prerequisites
 
-## Quick Start
+| Tool | Version |
+|------|---------|
+| Node.js | 18+ |
+| npm | bundled with Node.js |
 
-### Prerequisites
+Check:
+```bash
+node --version
+# v18.x.x or higher
+npm --version
+# 9.x.x or higher
+```
 
-- Node.js 18+ and npm
+The backend must be running at `http://localhost:8000` for analysis to work. See [backend/README.md](../backend/README.md).
 
-### Installation
+---
+
+## Setup
+
+### 1. Install dependencies
 
 ```bash
 cd frontend
 npm install
 ```
 
-### Development
+Expected output ends with:
+```
+added NNN packages, and audited NNN packages in Xs
+```
 
-Start the development server:
+### 2. Configure the API URL (optional)
+
+By default the frontend talks to `http://localhost:8000`. If your backend is on a different address, create a `.env.local` file:
+
+```bash
+# frontend/.env.local
+NEXT_PUBLIC_API_URL=http://localhost:8000
+```
+
+`NEXT_PUBLIC_` prefix means this value is embedded in the browser bundle — do not put secrets here.
+
+### 3. Start the dev server
 
 ```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser.
-
-### Building for Production
-
-Build the application:
-
-```bash
-npm run build
+Expected output:
+```
+▲ Next.js 15.x.x
+- Local:        http://localhost:3000
+- Environments: .env.local
+✓ Ready in 2.8s
 ```
 
-Start the production server:
+Open [http://localhost:3000](http://localhost:3000).
 
-```bash
-npm start
-```
+---
+
+## Using the app
+
+1. Enter any username on the login screen. No password. This is a PoC.
+2. Choose **Text** or **Video** mode.
+3. **Text mode:** paste content, click Analyze. Results appear below.
+4. **Video mode:** drop or select a `.mp4`, `.mov`, or `.webm` file. Optionally attach a `.srt` or `.vtt` subtitle file — if you don't, ElevenLabs generates one automatically (requires `ELEVENLABS_API_KEY` in the backend `.env`).
+5. Click thumbs up or down to rate each result.
+6. Your previous runs appear below the analyze button (requires backend to be up).
+
+---
 
 ## Scripts
 
-- `npm run dev` — Start development server with hot reload
-- `npm run build` — Build for production
-- `npm start` — Start production server
-- `npm run lint` — Run ESLint
-- `npm run lint:fix` — Run ESLint and fix issues
-- `npm run type-check` — Run TypeScript type checking (strict mode)
-- `npm run format` — Format code with Prettier
-- `npm run format:check` — Check code formatting without changes
+| Command | What it does |
+|---------|-------------|
+| `npm run dev` | Start dev server with hot reload at [localhost:3000](http://localhost:3000) |
+| `npm run build` | Build for production |
+| `npm start` | Start production server (run `build` first) |
+| `npm run lint` | Run ESLint |
+| `npm run lint:fix` | Run ESLint and auto-fix issues |
+| `npm run type-check` | Run TypeScript strict type check (no emitted files) |
+| `npm run format` | Format all `.ts`, `.tsx`, `.json`, `.md` with Prettier |
+| `npm run format:check` | Check formatting without making changes |
 
-## Project Structure
+---
+
+## Project structure
 
 ```
 frontend/
 ├── app/
-│   ├── components/           # Reusable React components
-│   │   ├── Button.tsx        # Button component
-│   │   ├── Card.tsx          # Card component
-│   │   ├── Header.tsx        # Header/navigation component
-│   │   └── Footer.tsx        # Footer component
-│   ├── lib/                  # Utilities and helpers
-│   │   ├── api.ts            # API client with fetch wrapper
-│   │   ├── constants.ts      # Configuration constants
-│   │   ├── hooks.ts          # Custom React hooks
-│   │   └── types.ts          # Shared TypeScript types
-│   ├── layout.tsx            # Root layout component
-│   ├── page.tsx              # Home page
-│   ├── error.tsx             # Global error boundary
-│   └── not-found.tsx         # 404 page
-├── public/                   # Static assets
-├── globals.css               # Global styles
-├── package.json              # Dependencies and scripts
-├── tsconfig.json             # TypeScript configuration (strict: true)
-├── next.config.js            # Next.js configuration
-├── .eslintrc.json            # ESLint rules
-├── .prettierrc                # Prettier configuration
-└── .gitignore                # Git ignore rules
+│   ├── page.tsx              — Full UI: login, mode selector, text analysis, video upload, history
+│   ├── layout.tsx            — Root layout (Inter font, metadata)
+│   ├── error.tsx             — Global error boundary
+│   ├── not-found.tsx         — 404 page
+│   ├── components/
+│   │   ├── Button.tsx        — Button component
+│   │   ├── Card.tsx          — Card component
+│   │   ├── Header.tsx        — Header/nav component
+│   │   └── Footer.tsx        — Footer component
+│   └── lib/
+│       ├── api.ts            — All API calls (judge, signup, history, upload, feedback, frames)
+│       ├── types.ts          — Shared TypeScript types (JudgeResponse, UserProfile, etc.)
+│       ├── constants.ts      — API_BASE_URL and other config constants
+│       ├── hooks.ts          — Custom React hooks (useAsync, useForm, useLocalStorage, useFetch)
+│       └── utils.ts          — Utility functions (cn for className merging)
+├── globals.css               — Global styles (Tailwind CSS v4 import)
+├── package.json              — Dependencies and scripts
+├── tsconfig.json             — TypeScript strict mode config
+├── next.config.js            — Next.js config
+└── .env.local                — Your local env overrides (not committed)
 ```
 
-## Component Development
+---
 
-### Creating a New Component
+## Environment variables
 
-1. Create a new file in `app/components/YourComponent.tsx`
-2. Define a TypeScript interface for props
-3. Export the component as default (one component per file)
-4. Use proper TypeScript types (no `any`)
+All frontend env vars are optional — defaults work for local development.
 
-Example:
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `NEXT_PUBLIC_API_URL` | `http://localhost:8000` | Backend API base URL. Change this if your backend runs on a different host or port. |
+| `NEXT_PUBLIC_ANALYTICS_ENABLED` | `false` | Enables analytics (not wired to any service by default). |
+| `NEXT_PUBLIC_DEBUG_MODE` | `false` | Enables debug logging in the browser console. |
 
-```typescript
-interface MyComponentProps {
-  title: string;
-  onClick: () => void;
-}
-
-export default function MyComponent({ title, onClick }: MyComponentProps): React.ReactElement {
-  return (
-    <div onClick={onClick}>
-      {title}
-    </div>
-  );
-}
-```
-
-### Component Rules
-
-- **One component per file** — Enforced by ESLint rule `react/no-multi-comp`
-- **Fully typed** — All props and returns must be typed
-- **No `any` types** — Will fail ESLint and type checking
-- **Return types** — All components should return `React.ReactElement`
-- **Prop interfaces** — Define an interface for all props
-
-## API Integration
-
-Use the `apiClient` from `lib/api.ts` to make API calls:
-
-```typescript
-import { apiClient } from '@/app/lib/api';
-
-const data = await apiClient.get('/endpoint');
-const result = await apiClient.post('/endpoint', { body: 'data' });
-```
-
-Or use the `useFetch` hook for React components:
-
-```typescript
-import { useFetch } from '@/app/lib/hooks';
-
-export default function MyComponent(): React.ReactElement {
-  const { data, loading, error } = useFetch('/endpoint');
-
-  if (loading) return <div>Loading...</div>;
-  if (error) return <div>Error: {error.message}</div>;
-
-  return <div>{data}</div>;
-}
-```
-
-## Type Safety
-
-This project uses TypeScript in strict mode. All code must:
-
-- Pass `npm run type-check` (runs `tsc --noEmit --strict`)
-- Have explicit type annotations on all functions
-- Use interfaces for all object shapes
-- Avoid `any` types
-- Use proper union types instead of optional properties
-
-## Environment Variables
-
-Create a `.env.local` file in the `frontend/` directory for local development:
-
+Create `frontend/.env.local` to override:
 ```bash
-# Backend API URL
 NEXT_PUBLIC_API_URL=http://localhost:8000
-
-# Feature flags
-NEXT_PUBLIC_ANALYTICS_ENABLED=false
-NEXT_PUBLIC_DEBUG_MODE=true
 ```
 
-Note: Variables prefixed with `NEXT_PUBLIC_` are available in the browser.
+Variables prefixed with `NEXT_PUBLIC_` are visible in the browser. Never put API keys or secrets here.
 
-## Code Quality
+---
 
-### ESLint
+## Dependencies
 
-Run linter:
+**Runtime:**
+- `next` 15 — React framework with App Router
+- `react` / `react-dom` 19 — UI library
+- `tailwindcss` v4 — Utility CSS
+- `lucide-react` — Icons
+- `clsx` / `tailwind-merge` / `class-variance-authority` — className utilities
 
+**Dev:**
+- `typescript` 5 — Type checking
+- `eslint` + plugins — Linting
+- `prettier` — Formatting
+- `@tailwindcss/postcss` — Tailwind v4 PostCSS integration
+
+---
+
+## Code quality
+
+Type-check before committing:
+```bash
+npm run type-check
+# No output = all good.
+```
+
+Lint before committing:
 ```bash
 npm run lint
+# No output = all good.
 ```
 
-Fix issues automatically:
-
+Fix lint issues automatically:
 ```bash
 npm run lint:fix
 ```
 
-Key rules:
+Key rules enforced:
 - No `any` types
 - One component per file
-- Unused variables/params are errors
-- Explicit function return types
-
-### Prettier
-
-Format code:
-
-```bash
-npm run format
-```
-
-Check formatting:
-
-```bash
-npm run format:check
-```
-
-### Type Checking
-
-Run type checker:
-
-```bash
-npm run type-check
-```
-
-This runs `tsc --noEmit --strict` and validates all code before deployment.
-
-## Error Handling
-
-### Error Boundary (app/error.tsx)
-
-Catches client-side errors and displays a fallback UI.
-
-### 404 Page (app/not-found.tsx)
-
-Automatically serves when a route is not found.
-
-### API Errors
-
-The `ApiClient` class throws `ApiError` with:
-
-```typescript
-class ApiError extends Error {
-  constructor(
-    public status: number,
-    public message: string,
-    public data?: unknown
-  ) { ... }
-}
-```
-
-Handle errors in hooks:
-
-```typescript
-const { data, error } = useFetch('/endpoint');
-if (error) {
-  console.error(`API Error ${error.status}: ${error.message}`);
-}
-```
-
-## Custom Hooks
-
-### useAsync
-
-Manage async operations with loading and error states:
-
-```typescript
-const { data, loading, error, execute } = useAsync(
-  () => apiClient.get('/endpoint')
-);
-```
-
-### useForm
-
-Manage form state with validation:
-
-```typescript
-const form = useForm(
-  { name: '', email: '' },
-  async (values) => {
-    await apiClient.post('/submit', values);
-  }
-);
-```
-
-### useLocalStorage
-
-Persist state in browser local storage:
-
-```typescript
-const [theme, setTheme] = useLocalStorage('theme', 'light');
-```
-
-### useFetch
-
-Fetch data with automatic retry and caching:
-
-```typescript
-const { data, loading, error, refetch } = useFetch('/endpoint');
-```
-
-## Testing
-
-The project is ready for testing with:
-
-- Jest (unit and integration tests)
-- React Testing Library (component tests)
-- E2E tests with Cypress or Playwright
-
-## Deployment
-
-The Next.js app can be deployed to:
-
-- **Vercel** (recommended) — Zero-config deployment
-- **Docker** — Containerized deployment
-- **Traditional hosting** — `npm run build && npm start`
-
-## Debugging
-
-Enable debug mode in `.env.local`:
-
-```bash
-NEXT_PUBLIC_DEBUG_MODE=true
-```
-
-Check browser console for detailed logs.
-
-## Contributing
-
-1. Create a feature branch
-2. Follow component and code quality rules
-3. Run `npm run lint` and `npm run type-check` before committing
-4. Ensure all tests pass
-5. Submit a pull request
-
-## Resources
-
-- [Next.js Documentation](https://nextjs.org/docs)
-- [React Documentation](https://react.dev)
-- [TypeScript Handbook](https://www.typescriptlang.org/docs/)
-- [ESLint Rules](https://eslint.org/docs/rules/)
-
-## License
-
-Part of the Feltsense judge-agent project.
+- All props and function return types must be typed
+- Unused variables are errors
 
 ---
 
-**Status:** v0.0.1 — Production scaffolding complete
-**Last Updated:** 2026-03-02
+## Troubleshooting
+
+**`npm run dev` fails with `Cannot find module 'next'`**
+
+You skipped the install step:
+```bash
+cd frontend && npm install
+```
+
+**Page loads but "Analyze" returns a network error or "Failed to fetch"**
+
+The backend is not running. In a separate terminal:
+```bash
+cd backend
+python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+**Page loads at a port other than 3000 (e.g. 3001)**
+
+Next.js picks the next available port if 3000 is taken. Update `CORS_ORIGINS` in `backend/.env` to include the new port, then restart the backend:
+```
+CORS_ORIGINS=["http://localhost:3001","http://localhost:8000"]
+```
+
+**`npm run type-check` fails after pulling new changes**
+
+Run `npm install` first — a dependency may have been added:
+```bash
+cd frontend && npm install && npm run type-check
+```
+
+**Video upload works but analysis fails**
+
+Video analysis requires `ELEVENLABS_API_KEY` in `backend/.env` unless you provide a subtitle file. Add your key and restart the backend.
