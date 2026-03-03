@@ -44,38 +44,6 @@ graph TB
 
 ---
 
-## Problem Statement
-
-Given a piece of content (text or video), produce four structured outputs:
-
-1. **Origin** — AI-generated vs. human-generated, with confidence score and top signals
-2. **Virality** — likelihood of strong social performance, scored 0–100
-3. **Distribution** — 2–4 audience segments likely to engage, with platform and reaction type
-4. **Explanation** — traceable reasoning across all four dimensions
-
----
-
-## System Overview
-
-Two processes, one data flow:
-
-```
-Browser (Next.js 15, :3000)
-    │
-    │  HTTP/JSON  (NEXT_PUBLIC_API_URL, default http://localhost:8000)
-    ▼
-Backend (FastAPI + uvicorn, :8000)
-    │
-    ├── SQLite  (judge_agent.db — app data)
-    ├── SQLite  (dbos_system.db — DBOS workflow state)
-    └── tmp/    (uploaded video files and extracted frames)
-         │
-         └── Anthropic API  (claude-sonnet-4-6)
-```
-
-The frontend is a Next.js 15 App Router single-page application. It calls the backend over HTTP. The backend owns all persistence, AI calls, and media processing. There is no server-side rendering that touches backend data — the frontend is purely a client-side UI.
-
----
 
 ## Backend
 
