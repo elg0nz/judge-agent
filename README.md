@@ -28,6 +28,8 @@ cd frontend && npm install && npm run dev
 
 → Open [http://localhost:3000](http://localhost:3000)
 
+> **PoC note:** The login screen accepts any username — no password, no email. If the backend is reachable the user is registered automatically; if not, a local session is created and full functionality (run history, feedback) requires the backend to be up.
+
 ---
 
 ## What it does

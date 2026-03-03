@@ -75,7 +75,7 @@ class Settings(BaseSettings):
         return self.DATABASE_URL.startswith("sqlite")
 
     # CORS
-    CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:8000"]
+    CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:3001", "http://localhost:8000"]
 
     # API Keys and Secrets
     SECRET_KEY: str = "dev-secret-key-change-in-production"

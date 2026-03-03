@@ -332,23 +332,20 @@ function HistoryPanel({ runs, loading }: { runs: RunSummary[]; loading: boolean 
 
 function LoginScreen({ onLogin }: { onLogin: (user: UserProfile) => void }): React.ReactElement {
   const [username, setUsername] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent): Promise<void> {
     e.preventDefault();
-    if (!username.trim()) return;
-    setLoading(true);
-    setError(null);
+    const name = username.trim();
+    if (!name) return;
+    // PoC: try to register with backend; fall back to local UUID if unreachable.
+    let user: UserProfile;
     try {
-      const user = await signup(username.trim());
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
-      onLogin(user);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong');
-    } finally {
-      setLoading(false);
+      user = await signup(name);
+    } catch {
+      user = { username: name, uuid: crypto.randomUUID() };
     }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
+    onLogin(user);
   }
 
   return (
@@ -372,13 +369,12 @@ function LoginScreen({ onLogin }: { onLogin: (user: UserProfile) => void }): Rea
             maxLength={64}
             className="px-4 py-3 rounded-xl border border-zinc-200 bg-white text-sm text-zinc-900 placeholder-zinc-400 shadow-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/10 focus:border-zinc-400 transition-colors"
           />
-          {error && <p className="text-xs text-rose-600">{error}</p>}
           <button
             type="submit"
-            disabled={loading || !username.trim()}
+            disabled={!username.trim()}
             className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-zinc-900 text-white text-sm font-medium hover:bg-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
-            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Start <ArrowRight className="w-4 h-4" /></>}
+            Start <ArrowRight className="w-4 h-4" />
           </button>
         </form>
       </div>
