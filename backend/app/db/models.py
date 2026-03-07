@@ -70,7 +70,7 @@ class JudgeRun(Base, TimestampedMixin):
         return f"<JudgeRun(id={self.id!r}, user_uuid={self.user_uuid!r})>"
 
 
-class Feedback(Base):
+class Feedback(Base, TimestampedMixin):
     """User feedback on judge analysis results."""
 
     __tablename__ = "feedback"
@@ -85,15 +85,13 @@ class Feedback(Base):
     judge_request_id: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
     rating: Mapped[str] = mapped_column(String(4), nullable=False)  # "up" or "down"
     content_type: Mapped[str] = mapped_column(String(5), nullable=False)  # "text" or "video"
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        default=lambda: datetime.now(UTC),
-        nullable=False,
-    )
 
     def __repr__(self) -> str:
-        return f"<Feedback(id={self.id!r}, judge_request_id={self.judge_request_id!r}, rating={self.rating!r})>"
+        return (
+            f"<Feedback(id={self.id!r},"
+            f" judge_request_id={self.judge_request_id!r},"
+            f" rating={self.rating!r})>"
+        )
 
 
 __all__ = ["Base", "TimestampedMixin", "User", "JudgeRun", "Feedback"]

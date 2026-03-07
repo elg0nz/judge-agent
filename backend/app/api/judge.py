@@ -113,12 +113,51 @@ class VideoJudgeRequest(BaseModel):
 
 
 @router.post("/video", response_model=JudgeOutput)
-async def judge_video(request: VideoJudgeRequest) -> JudgeOutput:
-    """Judge video content through the video analysis pipeline."""
+async def judge_video(
+    request: VideoJudgeRequest,
+    db: Session = Depends(get_db),
+) -> JudgeOutput:
+    """Judge video content through the video analysis pipeline.
+
+    Validates user_uuid, deduplicates by upload_id, and stores the run.
+    """
+    user_uuid = request.user_uuid
+    if user_uuid and not db.query(User).filter_by(uuid=user_uuid).first():
+        raise HTTPException(status_code=404, detail="Unknown user_uuid")
+
+    if user_uuid:
+        run_id = _run_id(request.upload_id, user_uuid)
+        existing = db.query(JudgeRun).filter_by(id=run_id).first()
+        if existing:
+            cached = JudgeOutput.model_validate(existing.output)
+            cached.run_id = run_id
+            return cached
+
     try:
         result = await judge_video_workflow(request.upload_id, request.user_uuid)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+    if user_uuid:
+        try:
+            run = JudgeRun(
+                id=run_id,
+                user_uuid=user_uuid,
+                input_text=request.upload_id,
+                output=result.model_dump(),
+            )
+            db.add(run)
+            db.commit()
+        except IntegrityError:
+            db.rollback()
+            existing = db.query(JudgeRun).filter_by(id=run_id).first()
+            if existing:
+                cached = JudgeOutput.model_validate(existing.output)
+                cached.run_id = run_id
+                return cached
+
+        result.run_id = run_id
+
     return result
 
 

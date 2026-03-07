@@ -32,15 +32,19 @@ _ASSIGNMENT_CONTEXT = (
 DEFAULT_MODEL_ID = "claude-sonnet-4-6"
 
 
-def _load_prompt(phase: ContentType) -> str:
-    """Load the system prompt for a given content phase."""
-    parts = [_ASSIGNMENT_CONTEXT, (_PROMPTS_DIR / "judge_text.txt").read_text()]
-    if phase == ContentType.TRANSCRIPT:
-        parts.append((_PROMPTS_DIR / "judge_transcript.txt").read_text())
-    elif phase == ContentType.VIDEO:
-        parts.append((_PROMPTS_DIR / "judge_transcript.txt").read_text())
-        parts.append((_PROMPTS_DIR / "judge_video.txt").read_text())
-    return "\n".join(parts)
+# Build prompt cache at import time — files never change at runtime
+_PROMPT_CACHE: dict[ContentType, str] = {
+    ContentType.TEXT: "\n".join([
+        _ASSIGNMENT_CONTEXT,
+        (_PROMPTS_DIR / "judge_text.txt").read_text(),
+    ]),
+    ContentType.VIDEO: "\n".join([
+        _ASSIGNMENT_CONTEXT,
+        (_PROMPTS_DIR / "judge_text.txt").read_text(),
+        (_PROMPTS_DIR / "judge_transcript.txt").read_text(),
+        (_PROMPTS_DIR / "judge_video.txt").read_text(),
+    ]),
+}
 
 
 def create_judge_agent(
@@ -51,7 +55,7 @@ def create_judge_agent(
     return Agent(
         name="content_judge",
         model=model or Claude(id=DEFAULT_MODEL_ID, api_key=settings.ANTHROPIC_API_KEY),
-        system_message=_load_prompt(content_type),
+        system_message=_PROMPT_CACHE[content_type],
         output_schema=JudgeOutput,
         description="Evaluates content across origin, virality, distribution, and explanation.",
     )

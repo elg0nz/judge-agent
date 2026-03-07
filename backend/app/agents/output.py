@@ -15,7 +15,6 @@ class ContentType(str, Enum):
     """Type of content being judged."""
 
     TEXT = "text"
-    TRANSCRIPT = "transcript"
     VIDEO = "video"
 
 

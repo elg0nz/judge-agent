@@ -5,10 +5,11 @@ import re
 from pathlib import Path
 
 import ffmpeg
+from agno.media import Image as AgnoImage
 from dbos import DBOS
 
-from app.agents.judge_agent import run_judge
-from app.agents.output import ContentType, JudgeOutput
+from app.agents.judge_agent import create_judge_agent
+from app.agents.output import ContentInput, ContentType, JudgeOutput
 from app.core.config import settings
 
 try:
@@ -43,7 +44,10 @@ def transcribe_or_parse(upload_id: str) -> str:
         raise FileNotFoundError(f"No video file in {upload_dir}")
 
     if not settings.ELEVENLABS_API_KEY:
-        mock_text = f"[Mock transcript for {upload_id} — set ELEVENLABS_API_KEY for real transcription]"
+        mock_text = (
+            f"[Mock transcript for {upload_id}"
+            " — set ELEVENLABS_API_KEY for real transcription]"
+        )
         transcript_path.write_text(mock_text, encoding="utf-8")
         return mock_text
 
@@ -109,6 +113,31 @@ def extract_frames(upload_id: str) -> list[str]:
     return frame_files
 
 
+def _sample_frames(frame_paths: list[str], max_frames: int = 10) -> list[str]:
+    """Return up to max_frames evenly distributed across frame_paths."""
+    if len(frame_paths) <= max_frames:
+        return frame_paths
+    step = len(frame_paths) / max_frames
+    return [frame_paths[int(i * step)] for i in range(max_frames)]
+
+
+@DBOS.step(retries_allowed=True, max_attempts=3, backoff_rate=2.0, interval_seconds=1.0)
+async def _judge_video_with_frames(transcript: str, frame_paths: list[str]) -> JudgeOutput:
+    """Judge video using transcript text plus sampled frames sent to Claude."""
+    sampled = _sample_frames(frame_paths)
+    images = [AgnoImage(filepath=p) for p in sampled]
+    agent = create_judge_agent(content_type=ContentType.VIDEO)
+    content_input = ContentInput(content=transcript, content_type=ContentType.VIDEO)
+    response = await agent.arun(content_input.to_prompt(), images=images)
+
+    if not isinstance(response.content, JudgeOutput):
+        raise TypeError(
+            f"Expected JudgeOutput, got {type(response.content).__name__}"
+        )
+
+    return response.content
+
+
 @DBOS.workflow()
 async def judge_video_workflow(upload_id: str, user_uuid: str | None = None) -> JudgeOutput:
     """DBOS workflow: transcribe, extract frames, then judge.
@@ -117,12 +146,7 @@ async def judge_video_workflow(upload_id: str, user_uuid: str | None = None) -> 
     """
     transcript = transcribe_or_parse(upload_id)
     frame_paths = extract_frames(upload_id)
-
-    # Step C: judge with combined transcript + frames context
-    frame_summary = f"\n\n[Extracted {len(frame_paths)} frames from video]"
-    content = transcript + frame_summary
-
-    result = await run_judge(content, ContentType.VIDEO)
+    result = await _judge_video_with_frames(transcript, frame_paths)
     return result
 
 
@@ -168,4 +192,9 @@ def _parse_subtitles(path: Path) -> str:
     return " ".join(text_lines)
 
 
-__all__ = ["judge_video_workflow", "transcribe_or_parse", "extract_frames"]
+__all__ = [
+    "judge_video_workflow",
+    "transcribe_or_parse",
+    "extract_frames",
+    "_judge_video_with_frames",
+]

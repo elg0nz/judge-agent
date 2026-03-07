@@ -42,6 +42,7 @@ Thumbs.db
 
 # Temporary upload storage
 tmp/
+.sqlite_tables_created
 
 # Dolt database files (added by bd init)
 .dolt/

@@ -1,9 +1,10 @@
 """Main FastAPI application entry point with health check and root endpoints."""
 
+import logging
 from contextlib import asynccontextmanager
-from pathlib import Path
 from typing import Any
 
+from dbos import DBOS, DBOSConfig
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -16,6 +17,8 @@ from app.api.upload import router as upload_router
 from app.core.config import settings
 from app.db.dbos import get_db_manager
 
+logger = logging.getLogger(__name__)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):  # type: ignore[type-arg]
@@ -27,7 +30,6 @@ async def lifespan(app: FastAPI):  # type: ignore[type-arg]
     """
     # DBOS.launch() runs once per worker process (expected with multi-worker uvicorn).
     # This is intentional: each worker needs its own DBOS context.
-    from dbos import DBOS, DBOSConfig
     config: DBOSConfig = {
         "name": "judge-agent",
         "system_database_url": settings.DBOS_SYSTEM_DATABASE_URL,
@@ -36,11 +38,7 @@ async def lifespan(app: FastAPI):  # type: ignore[type-arg]
     DBOS.launch()
     if settings.ENVIRONMENT == "development" and settings.is_sqlite:
         # create_all_tables() is idempotent (CREATE TABLE IF NOT EXISTS).
-        # Use a sentinel file to skip the DDL round-trip on every worker after the first.
-        sentinel = Path(".sqlite_tables_created")
-        if not sentinel.exists():
-            get_db_manager().create_all_tables()
-            sentinel.touch()
+        get_db_manager().create_all_tables()
     yield
 
 
@@ -120,12 +118,10 @@ def create_app() -> FastAPI:
         Returns:
             JSON response with error details.
         """
+        logger.exception("Unhandled exception: %s", exc)
         return JSONResponse(
             status_code=500,
-            content={
-                "detail": "Internal server error",
-                "type": type(exc).__name__,
-            },
+            content={"detail": "Internal server error"},
         )
 
     return app
