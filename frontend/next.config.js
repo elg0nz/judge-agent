@@ -1,6 +1,14 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  images: {
+    // Backend API serves frame thumbnails from a dynamic host (localhost in dev, deployed URL in prod).
+    // Wildcard hostname covers both without hardcoding the env-specific URL here.
+    remotePatterns: [
+      { protocol: 'http', hostname: '**' },
+      { protocol: 'https', hostname: '**' },
+    ],
+  },
   swcMinify: true,
   typescript: {
     // Type check during build

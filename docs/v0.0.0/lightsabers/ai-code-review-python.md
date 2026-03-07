@@ -73,6 +73,19 @@ For each issue found: name it, show the specific line or pattern, explain why it
 
 ---
 
+## Automated Gate (Pre-Commit Hook)
+
+**The lightsaber fails if it isn't run. The hook runs whether you remember or not.**
+
+A `.husky/pre-commit` hook runs Ruff on every staged `.py` file before the commit lands.
+Activate it after cloning:
+
+```bash
+git config core.hooksPath .husky
+```
+
+---
+
 ## Tooling First (Armin Ronacher Principle)
 
 > "Use tooling as much as possible. Minimize manual review."

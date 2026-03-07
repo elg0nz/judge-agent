@@ -48,6 +48,25 @@ LLMs generate React code component-by-component, without seeing the full tree. T
 
 ---
 
+## Automated Gate (Pre-Commit Hook)
+
+**The lightsaber fails if it isn't run. The hook runs whether you remember or not.**
+
+A `.husky/pre-commit` hook runs ESLint on every staged `.ts`/`.tsx` file before the commit lands.
+It blocks the commit if any rule fails — including `react/no-multi-comp`.
+
+```bash
+# Verify the hook is active
+cat .git/config | grep hooksPath   # should show: hooksPath = .husky
+
+# If cloning fresh, re-enable the hook path
+git config core.hooksPath .husky
+```
+
+If you bypass the hook (`--no-verify`), you own the breakage. Don't.
+
+---
+
 ## The Tooling Stack
 
 ### Step 1: Lint & Style

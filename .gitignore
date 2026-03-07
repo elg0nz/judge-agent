@@ -42,3 +42,7 @@ Thumbs.db
 
 # Temporary upload storage
 tmp/
+
+# Dolt database files (added by bd init)
+.dolt/
+*.db

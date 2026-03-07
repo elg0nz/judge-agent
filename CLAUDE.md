@@ -134,6 +134,24 @@ No code directories yet—they will be created as specs are implemented.
 
 ---
 
+## Frontend Component Rules
+
+**One component per file — no exceptions.**
+
+- Every React component lives in its own file under `frontend/app/components/`
+- `page.tsx` files contain only the page-level default export (routing shell, no UI logic)
+- Pure helper functions go in `frontend/app/lib/helpers.ts`
+- The `react/no-multi-comp` ESLint rule is set to `error` and enforces this automatically
+- If you need a tiny presentational sub-component, it still gets its own file
+
+**Enforcement:** A `.husky/pre-commit` hook runs ESLint on every staged `.ts`/`.tsx` file and blocks the commit on any violation. This is not optional. If you clone this repo, activate it:
+
+```bash
+git config core.hooksPath .husky
+```
+
+---
+
 ## Test Harness: Lightsabers
 
 **Location:** `docs/v0.0.0/lightsabers/`

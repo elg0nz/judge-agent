@@ -30,7 +30,6 @@ import anthropic
 from app.agents.judge_agent import create_judge_agent
 from app.agents.output import ContentInput, ContentType, JudgeOutput
 
-
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
 AI_THRESHOLD = 30    # AI samples: humanness score must be below this
 HUMAN_THRESHOLD = 70  # Human samples: humanness score must be above this

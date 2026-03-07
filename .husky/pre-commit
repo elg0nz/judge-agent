@@ -1,0 +1,36 @@
+#!/bin/sh
+# Pre-commit: ESLint on staged .ts/.tsx, Ruff on staged .py
+# Blocks commit on any violation. No --no-verify excuses.
+
+STAGED_TS=$(git diff --cached --name-only --diff-filter=ACMR | grep '^frontend/.*\.\(ts\|tsx\)$')
+STAGED_PY=$(git diff --cached --name-only --diff-filter=ACMR | grep '\.py$')
+
+FAILED=0
+
+if [ -n "$STAGED_TS" ]; then
+  echo "=== ESLint (frontend) ==="
+  cd frontend
+  echo "$STAGED_TS" | sed 's|^frontend/||' | xargs npx eslint --max-warnings=0
+  if [ $? -ne 0 ]; then
+    echo "Fix: cd frontend && npm run lint:fix"
+    FAILED=1
+  fi
+  cd ..
+fi
+
+if [ -n "$STAGED_PY" ]; then
+  echo "=== Ruff (backend) ==="
+  echo "$STAGED_PY" | xargs ruff check
+  if [ $? -ne 0 ]; then
+    echo "Fix: ruff check --fix <file>"
+    FAILED=1
+  fi
+fi
+
+if [ $FAILED -ne 0 ]; then
+  echo ""
+  echo "Commit blocked. Fix the errors above and re-commit."
+  exit 1
+fi
+
+exit 0
